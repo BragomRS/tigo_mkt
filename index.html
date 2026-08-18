@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard PRE2POS</title>
+    <title>Dashboard MKT</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +17,27 @@
         <div class="header-left">
             <button id="sidebarToggle" class="icon-btn" aria-label="Alternar menú" type="button">☰</button>
             <div class="brand">
-                <span class="brand-name" id="appTitle">Dashboard PRE2POS</span>
+                <span class="brand-name" id="appTitle">Dashboard MKT</span>
+            </div>
+            <div class="month-filter">
+                <button id="monthFilterToggle" class="month-filter-btn" type="button" aria-haspopup="true" aria-expanded="false">
+                    <span class="month-filter-icon">📅</span>
+                    <span id="monthFilterLabel">--</span>
+                </button>
+                <div id="monthFilterPanel" class="month-filter-panel">
+                    <div class="month-filter-field">
+                        <label for="monthFilterMonth">Mes</label>
+                        <select id="monthFilterMonth"></select>
+                    </div>
+                    <div class="month-filter-field">
+                        <label for="monthFilterYear">Año</label>
+                        <select id="monthFilterYear"></select>
+                    </div>
+                    <div class="month-filter-actions">
+                        <button id="monthFilterReset" class="btn-secondary" type="button">Ver todo</button>
+                        <button id="monthFilterApply" class="btn-primary" type="button">Aplicar</button>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="header-right">
@@ -28,14 +48,20 @@
 
     <aside class="sidebar" id="sidebar">
         <nav class="sidebar-nav">
-            <a class="sidebar-link active" href="#">
+            <a class="sidebar-link active" href="#" data-view="resumenView">
                 <span class="sidebar-link-icon">📊 </span>
                 <span class="sidebar-link-text">Resumen</span>
+            </a>
+            <a class="sidebar-link" href="#" data-view="respuestasView">
+                <span class="sidebar-link-icon">💬 </span>
+                <span class="sidebar-link-text">Respuestas</span>
             </a>
         </nav>
     </aside>
 
     <main class="main-content">
+
+      <div class="view" id="resumenView">
 
         <!-- KPIs: se completará dinámicamente vía createKPI() a partir de la Fase 4 -->
         <section class="kpi-grid" id="kpiGrid">
@@ -106,6 +132,45 @@
             </div>
         </section>
 
+      </div>
+
+      <div class="view hidden" id="respuestasView">
+
+        <div class="card filter-card">
+            <div class="card-header">
+                <h3>Difusiones</h3>
+            </div>
+            <div class="card-body">
+                <div class="difusiones-filter">
+                    <button id="difusionesFilterToggle" class="month-filter-btn" type="button" aria-haspopup="true" aria-expanded="false">
+                        <span class="month-filter-icon">📣</span>
+                        <span id="difusionesFilterLabel">Seleccionar difusiones</span>
+                    </button>
+                    <div id="difusionesFilterPanel" class="month-filter-panel difusiones-filter-panel">
+                        <div id="difusionesFilterList" class="difusiones-filter-list"></div>
+                        <div class="month-filter-actions">
+                            <button id="difusionesFilterClear" class="btn-secondary" type="button">Limpiar</button>
+                            <button id="difusionesFilterApply" class="btn-primary" type="button">Aplicar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="respuestasResultCard">
+            <div class="card-header">
+                <h3>Resultado</h3>
+            </div>
+            <div class="card-body">
+                <div class="empty-state">
+                    <span class="empty-state-icon">🚧</span>
+                    <p>Seleccioná una o más difusiones y presioná Aplicar. La información a mostrar acá todavía no está definida.</p>
+                </div>
+            </div>
+        </div>
+
+      </div>
+
     </main>
 
     <div id="loaderOverlay" class="loader-overlay">
@@ -121,11 +186,13 @@
     <script src="js/utils.js" defer></script>
     <script src="js/config.js" defer></script>
     <script src="js/ui.js" defer></script>
+    <script src="js/monthFilter.js" defer></script>
     <script src="js/sheets.js" defer></script>
     <script src="js/processor.js" defer></script>
     <script src="js/components.js" defer></script>
     <script src="js/charts.js" defer></script>
     <script src="js/dashboard.js" defer></script>
+    <script src="js/respuestas.js" defer></script>
     <script src="script.js" defer></script>
 </body>
 </html>

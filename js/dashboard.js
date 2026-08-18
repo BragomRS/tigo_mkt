@@ -46,11 +46,12 @@ const KPI_DEFINITIONS = [
 ];
 
 // Los nombres de campaña llegan con un prefijo fijo del tipo
-// "Gestion P2p 2607.030 . " -- se recorta para mostrar solo la parte
-// descriptiva (ej. "Plan Full Tigo Mas Tv Basico B 27 De Julio Del 2026 . Lote 1").
+// "Gestion P2p 2607.030 . " o "Gestion Mkt 2608.002 . " -- se recorta para
+// mostrar solo la parte descriptiva (ej. "Plan Full Tigo Mas Tv Basico B 27
+// De Julio Del 2026 . Lote 1"), sin importar la etiqueta que use cada hoja.
 function formatDifusionName(value) {
     return String(value)
-        .replace(/^Gestion P2p\s+[\d.]+\s*\.\s*/i, "")
+        .replace(/^Gestion\s+\S+\s+[\d.]+\s*\.\s*/i, "")
         .replace(/mas/gi, "+")
         .trim();
 }

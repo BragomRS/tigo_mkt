@@ -6,12 +6,12 @@
 const CONFIG = {
 
     // Identidad de la app (usada por header.js / ui.js)
-    appTitle: "Dashboard PRE2POS",
+    appTitle: "Dashboard MKT",
 
     // Fuente de datos (se usa a partir de la Fase 2)
-    spreadsheetId: "1PC99xqwEAoe2qW7LYeGQdJ7KwPxZtjMOb8zw32bC6Og",
+    spreadsheetId: "1BYQDPau8r_CgyGgbYl_G5aDk50sGxRDQaDkcw4DDtEw",
     sheetName: "Sheet1",
-    gid: "1794944853",
+    gid: "0",
 
     // Refresco automático de datos, en segundos
     refreshInterval: 300,

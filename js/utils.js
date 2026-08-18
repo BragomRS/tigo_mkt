@@ -26,6 +26,10 @@ function formatDate(date, options = { dateStyle: "medium", timeStyle: "short" })
     return new Intl.DateTimeFormat(CONFIG.language, options).format(date);
 }
 
+function capitalize(text) {
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function hexToRgba(hex, alpha = 1) {
     const clean = hex.replace("#", "");
     const value = parseInt(clean, 16);

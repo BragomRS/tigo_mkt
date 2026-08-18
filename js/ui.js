@@ -30,6 +30,23 @@ const UI = {
         $(".main-content")?.classList.toggle("sidebar-collapsed");
     },
 
+    // Resalta el link elegido en el sidebar y muestra la vista asociada
+    // (su data-view apunta al id de un .view en <main>). Solo manipula
+    // clases del DOM: no conoce qué datos de negocio vive en cada vista.
+    bindSidebarNav() {
+        $$(".sidebar-link").forEach((link) => {
+            link.addEventListener("click", (event) => {
+                event.preventDefault();
+                $$(".sidebar-link").forEach((other) => other.classList.remove("active"));
+                link.classList.add("active");
+
+                const viewId = link.dataset.view;
+                if (!viewId) return;
+                $$(".view").forEach((view) => view.classList.toggle("hidden", view.id !== viewId));
+            });
+        });
+    },
+
     showLoader() {
         $("#loaderOverlay")?.classList.add("visible");
     },

@@ -15,7 +15,9 @@ const ProcessorService = {
         return this._worker;
     },
 
-    process(rawCsv) {
+    // filter = { year, month } (month 1-12) para acotar el reporte a un mes
+    // puntual según dispatched_at, o null para procesar todo el histórico.
+    process(rawCsv, filter = null) {
         return new Promise((resolve, reject) => {
             const worker = this._getWorker();
 
@@ -43,7 +45,7 @@ const ProcessorService = {
 
             worker.addEventListener("message", onMessage);
             worker.addEventListener("error", onError);
-            worker.postMessage({ rawCsv });
+            worker.postMessage({ rawCsv, filter });
         });
     },
 

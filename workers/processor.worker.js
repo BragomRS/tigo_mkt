@@ -48,6 +48,25 @@ function splitDateTime(rawValue) {
     return { date: trimmed, time: "" };
 }
 
+// Filtro por mes/año seleccionado en el header (js/monthFilter.js).
+// Se aplica sobre dispatched_at con un corte literal de texto (mismo
+// criterio que splitDateTime/extractDayKey) para no correr la fecha por
+// husos horarios. filter = { year, month } con month 1-12, o null/undefined
+// para no filtrar (reporte histórico completo).
+function matchesMonthFilter(row, filter) {
+    if (!filter || filter.year == null || filter.month == null) return true;
+
+    const raw = row.dispatched_at;
+    if (!raw) return false;
+
+    const match = String(raw).trim().match(/^(\d{4})-(\d{2})/);
+    if (!match) return false;
+
+    const rowYear = Number(match[1]);
+    const rowMonth = Number(match[2]);
+    return rowYear === filter.year && rowMonth === filter.month;
+}
+
 const PROCESSORS = [
     {
         name: "meta",
@@ -252,7 +271,7 @@ function createDashboardData() {
 }
 
 self.onmessage = function (event) {
-    const { rawCsv } = event.data;
+    const { rawCsv, filter } = event.data;
 
     try {
         const dashboardData = createDashboardData();
@@ -269,6 +288,7 @@ self.onmessage = function (event) {
                 }
 
                 const row = results.data;
+                if (!matchesMonthFilter(row, filter)) return;
 
                 // Única pasada: todos los procesadores reciben la misma fila.
                 for (let i = 0; i < PROCESSORS.length; i++) {
@@ -282,6 +302,7 @@ self.onmessage = function (event) {
                 }
 
                 dashboardData.meta.generatedAt = Date.now();
+                dashboardData.filters = filter ? { year: filter.year, month: filter.month } : null;
                 self.postMessage({ dashboardData });
             },
 

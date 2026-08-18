@@ -168,6 +168,171 @@ a {
     color: var(--color-text-muted);
 }
 
+/* ===================================================================
+   FILTRO DE MES/AÑO
+   =================================================================== */
+
+.month-filter {
+    position: relative;
+}
+
+.month-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 6px var(--space-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-hover);
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.month-filter-btn:hover {
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+}
+
+.month-filter-panel {
+    position: absolute;
+    top: calc(100% + var(--space-sm));
+    left: 0;
+    display: none;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 220px;
+    padding: var(--space-md);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    z-index: 110;
+}
+
+.month-filter-panel.open {
+    display: flex;
+}
+
+.month-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.month-filter-field label {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.month-filter-field select {
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.month-filter-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+}
+
+.btn-primary, .btn-secondary {
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-primary {
+    background: var(--color-accent);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--color-accent-hover);
+}
+
+.btn-secondary {
+    background: var(--color-bg-hover);
+    color: var(--color-text-secondary);
+}
+
+.btn-secondary:hover {
+    background: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+/* ===================================================================
+   VISTAS (Resumen / Respuestas)
+   =================================================================== */
+
+.view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.view.hidden {
+    display: none;
+}
+
+/* .card crea su propio contexto de apilamiento (tiene transition/animation
+   sobre transform), así que sin esto la tarjeta siguiente en el DOM
+   ("Resultado") queda por encima del dropdown y le roba los clics. */
+.filter-card {
+    position: relative;
+    z-index: 5;
+}
+
+.difusiones-filter {
+    position: relative;
+    display: inline-block;
+}
+
+.difusiones-filter-panel {
+    min-width: 320px;
+    max-width: 420px;
+}
+
+.difusiones-filter-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.difusion-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+.difusion-option:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+}
+
+.difusion-option input[type="checkbox"] {
+    accent-color: var(--color-accent);
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+}
+
 .sidebar {
     position: fixed;
     top: var(--header-height);
