@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard PRE2POS</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="header-left">
+            <button id="sidebarToggle" class="icon-btn" aria-label="Alternar menú" type="button">☰</button>
+            <div class="brand">
+                <span class="brand-name" id="appTitle">Dashboard PRE2POS</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <span class="last-updated" id="lastUpdated">Sin datos</span>
+            <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema" type="button">🌙</button>
+        </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            <a class="sidebar-link active" href="#">
+                <span class="sidebar-link-icon">📊 </span>
+                <span class="sidebar-link-text">Resumen</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+
+        <!-- KPIs: se completará dinámicamente vía createKPI() a partir de la Fase 4 -->
+        <section class="kpi-grid" id="kpiGrid">
+            <div class="card kpi-card placeholder">
+                <div class="card-body">
+                    <span class="kpi-value">--</span>
+                    <span class="kpi-label">KPI de ejemplo</span>
+                </div>
+            </div>
+            <div class="card kpi-card placeholder">
+                <div class="card-body">
+                    <span class="kpi-value">--</span>
+                    <span class="kpi-label">KPI de ejemplo</span>
+                </div>
+            </div>
+            <div class="card kpi-card placeholder">
+                <div class="card-body">
+                    <span class="kpi-value">--</span>
+                    <span class="kpi-label">KPI de ejemplo</span>
+                </div>
+            </div>
+            <div class="card kpi-card placeholder">
+                <div class="card-body">
+                    <span class="kpi-value">--</span>
+                    <span class="kpi-label">KPI de ejemplo</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gráficos: se completará dinámicamente vía createChart() a partir de la Fase 5 -->
+        <section class="charts-grid" id="chartsGrid">
+            <div class="card chart-card placeholder" id="chartPlaceholder1">
+                <div class="card-header">
+                    <h3>Gráfico</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📊</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card chart-card placeholder" id="chartPlaceholder2">
+                <div class="card-header">
+                    <h3>Gráfico</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📈</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tablas: se completará dinámicamente vía createTable() en fases posteriores -->
+        <section class="tables-grid" id="tablesGrid">
+            <div class="card table-card placeholder" id="tablePlaceholder1">
+                <div class="card-header">
+                    <h3>Tabla</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📋</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="loaderOverlay" class="loader-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="notificationContainer" class="notification-container"></div>
+
+    <div id="modalRoot" class="modal-root hidden"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+
+    <script src="js/utils.js" defer></script>
+    <script src="js/config.js" defer></script>
+    <script src="js/ui.js" defer></script>
+    <script src="js/sheets.js" defer></script>
+    <script src="js/processor.js" defer></script>
+    <script src="js/components.js" defer></script>
+    <script src="js/charts.js" defer></script>
+    <script src="js/dashboard.js" defer></script>
+    <script src="script.js" defer></script>
+</body>
+</html>
