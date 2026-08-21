@@ -157,14 +157,43 @@
             </div>
         </div>
 
+        <div class="card" id="respuestasGlobalCard">
+            <div class="card-header">
+                <h3>Respuestas de la selección</h3>
+            </div>
+            <div class="card-body">
+                <div class="gauge-grid" id="gaugeGrid">
+                    <div class="card gauge-widget">
+                        <canvas id="gaugeRespuestasCanvas"></canvas>
+                        <div class="gauge-value" id="gaugeRespuestasValue">--</div>
+                        <div class="gauge-label">Respuestas sobre mensajes enviados</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="answerGaugesCard">
+            <div class="card-header">
+                <h3>Respuestas por pregunta</h3>
+            </div>
+            <div class="card-body">
+                <div class="gauge-grid" id="answerGaugesGrid">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">🚧</span>
+                        <p>Seleccioná una o más difusiones y presioná Aplicar.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card" id="respuestasResultCard">
             <div class="card-header">
-                <h3>Resultado</h3>
+                <h3>Resultados por difusión</h3>
             </div>
             <div class="card-body">
                 <div class="empty-state">
                     <span class="empty-state-icon">🚧</span>
-                    <p>Seleccioná una o más difusiones y presioná Aplicar. La información a mostrar acá todavía no está definida.</p>
+                    <p>Seleccioná una o más difusiones y presioná Aplicar para ver los gráficos de respuestas.</p>
                 </div>
             </div>
         </div>

@@ -333,6 +333,94 @@ a {
     flex: 0 0 auto;
 }
 
+.respuestas-block {
+    padding: var(--space-md) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.respuestas-block:first-child {
+    padding-top: 0;
+}
+
+.respuestas-block:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.respuestas-block-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-xs);
+}
+
+.respuestas-block-total {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-sm);
+}
+
+.respuestas-block-empty {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.respuestas-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-md);
+}
+
+.gauge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-lg);
+}
+
+.gauge-grid .empty-state {
+    grid-column: 1 / -1;
+}
+
+.gauge-widget {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-lg);
+}
+
+.gauge-widget canvas {
+    width: 100% !important;
+    max-height: 160px;
+}
+
+.gauge-value {
+    position: absolute;
+    top: 58%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.gauge-value-text {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: normal;
+    line-height: 1.3;
+    max-width: 90%;
+}
+
+.gauge-label {
+    margin-top: var(--space-xs);
+    font-size: 13px;
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
 .sidebar {
     position: fixed;
     top: var(--header-height);
@@ -469,6 +557,16 @@ a {
     color: var(--color-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.03em;
+}
+
+.chart-card-subtitle {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--color-text-muted);
 }
 
 .card-body {

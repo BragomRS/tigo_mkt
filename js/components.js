@@ -30,16 +30,27 @@ const Components = {
         return card;
     },
 
-    createChartCard({ id, title }) {
+    createChartCard({ id, title, subtitle }) {
         const card = document.createElement("div");
         card.className = "card chart-card";
         card.id = `chart-card-${id}`;
 
         const header = document.createElement("div");
         header.className = "card-header";
+
+        const headingGroup = document.createElement("div");
         const heading = document.createElement("h3");
         heading.textContent = title;
-        header.appendChild(heading);
+        headingGroup.appendChild(heading);
+
+        if (subtitle) {
+            const subheading = document.createElement("span");
+            subheading.className = "chart-card-subtitle";
+            subheading.textContent = subtitle;
+            headingGroup.appendChild(subheading);
+        }
+
+        header.appendChild(headingGroup);
 
         const body = document.createElement("div");
         body.className = "card-body";

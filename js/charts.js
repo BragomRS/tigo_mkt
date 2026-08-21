@@ -64,14 +64,14 @@ const ChartService = {
         };
     },
 
-    createChart({ id, type, title, data, options = {}, container } = {}) {
+    createChart({ id, type, title, subtitle, data, options = {}, container } = {}) {
         if (!id) throw new Error("createChart requiere un 'id' único.");
         if (!type) throw new Error("createChart requiere un 'type' (bar, line, pie, ...).");
 
         let canvas = document.getElementById(`chart-canvas-${id}`);
 
         if (!canvas) {
-            const card = Components.createChartCard({ id, title });
+            const card = Components.createChartCard({ id, title, subtitle });
             const target = container || $("#chartsGrid");
             target?.appendChild(card);
             canvas = document.getElementById(`chart-canvas-${id}`);

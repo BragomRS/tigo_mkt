@@ -67,6 +67,20 @@ function matchesMonthFilter(row, filter) {
     return rowYear === filter.year && rowMonth === filter.month;
 }
 
+// output_variables llega como un JSON plano ("pregunta" -> "respuesta").
+// Filas sin respuesta lo traen vacío; se descartan silenciosamente las que
+// no sean JSON válido (no debería pasar en datos reales de la plataforma).
+function parseOutputVariables(rawValue) {
+    if (!rawValue) return null;
+
+    try {
+        const parsed = JSON.parse(rawValue);
+        return (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
 const PROCESSORS = [
     {
         name: "meta",
@@ -257,6 +271,40 @@ const PROCESSORS = [
             };
         },
     },
+    {
+        // Respuestas: cada fila con output_variables no vacío es un contacto
+        // que respondió el flujo de WhatsApp de esa difusión. output_variables
+        // es un JSON plano "pregunta -> respuesta" (ej. { "resp_utilidad":
+        // "Videos y streaming" }); las preguntas varían según el flujo de cada
+        // campaña. Se tabula cuántas veces se elige cada respuesta, por
+        // pregunta y por difusión, para que la vista "Respuestas" solo tenga
+        // que leer el resultado ya armado.
+        name: "responsesByCampaign",
+        createState: () => ({ campaigns: {} }),
+        onRow(row, state) {
+            const answers = parseOutputVariables(row.output_variables);
+            if (!answers) return;
+
+            const key = row.campaign_name || "Sin campaña";
+            if (!state.campaigns[key]) {
+                state.campaigns[key] = { totalResponses: 0, questions: {} };
+            }
+
+            const campaign = state.campaigns[key];
+            campaign.totalResponses++;
+
+            Object.entries(answers).forEach(([question, answer]) => {
+                if (!campaign.questions[question]) campaign.questions[question] = {};
+                const value = String(answer);
+                campaign.questions[question][value] = (campaign.questions[question][value] || 0) + 1;
+            });
+        },
+        finalize(state, dashboardData) {
+            dashboardData.responses.byCampaign = state.campaigns;
+            dashboardData.responses.totalResponses = Object.values(state.campaigns)
+                .reduce((sum, campaign) => sum + campaign.totalResponses, 0);
+        },
+    },
 ];
 
 function createDashboardData() {
@@ -267,6 +315,7 @@ function createDashboardData() {
         tables: {},
         filters: {},
         metrics: {},
+        responses: { byCampaign: {}, totalResponses: 0 },
     };
 }
 
