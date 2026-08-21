@@ -25,6 +25,7 @@ const RespuestasView = {
         this._selected = new Set([...this._selected].filter((name) => difusiones.includes(name)));
 
         const list = $("#difusionesFilterList");
+        const selectAll = $("#difusionesFilterSelectAll");
         if (!list) return;
         list.innerHTML = "";
 
@@ -33,9 +34,15 @@ const RespuestasView = {
                 icon: "📭",
                 message: "No hay difusiones en el mes seleccionado.",
             }));
+            if (selectAll) {
+                selectAll.checked = false;
+                selectAll.disabled = true;
+            }
             this._updateLabel();
             return;
         }
+
+        if (selectAll) selectAll.disabled = false;
 
         difusiones.forEach((name) => {
             const option = document.createElement("label");
@@ -48,6 +55,7 @@ const RespuestasView = {
             checkbox.addEventListener("change", () => {
                 if (checkbox.checked) this._selected.add(name);
                 else this._selected.delete(name);
+                this._syncSelectAll();
                 this._updateLabel();
             });
 
@@ -58,7 +66,18 @@ const RespuestasView = {
             list.appendChild(option);
         });
 
+        this._syncSelectAll();
         this._updateLabel();
+    },
+
+    // El checkbox "Seleccionar todos" refleja el estado actual: marcado solo
+    // si TODAS las difusiones listadas están seleccionadas.
+    _syncSelectAll() {
+        const selectAll = $("#difusionesFilterSelectAll");
+        if (!selectAll) return;
+
+        const checkboxes = $$("#difusionesFilterList input[type=checkbox]");
+        selectAll.checked = checkboxes.length > 0 && checkboxes.every((checkbox) => checkbox.checked);
     },
 
     _updateLabel() {
@@ -76,6 +95,17 @@ const RespuestasView = {
         const panel = $("#difusionesFilterPanel");
         const applyBtn = $("#difusionesFilterApply");
         const clearBtn = $("#difusionesFilterClear");
+        const selectAll = $("#difusionesFilterSelectAll");
+
+        selectAll?.addEventListener("change", () => {
+            const checkboxes = $$("#difusionesFilterList input[type=checkbox]");
+            checkboxes.forEach((checkbox) => {
+                checkbox.checked = selectAll.checked;
+                if (selectAll.checked) this._selected.add(checkbox.value);
+                else this._selected.delete(checkbox.value);
+            });
+            this._updateLabel();
+        });
 
         toggleBtn?.addEventListener("click", (event) => {
             event.stopPropagation();
@@ -95,6 +125,7 @@ const RespuestasView = {
             $$("#difusionesFilterList input[type=checkbox]").forEach((checkbox) => {
                 checkbox.checked = false;
             });
+            if (selectAll) selectAll.checked = false;
             this._updateLabel();
         });
 

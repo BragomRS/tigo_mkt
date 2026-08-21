@@ -333,6 +333,15 @@ a {
     flex: 0 0 auto;
 }
 
+.difusion-select-all {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border);
+    border-radius: 0;
+    padding-bottom: var(--space-sm);
+    margin-bottom: var(--space-xs);
+}
+
 .respuestas-block {
     padding: var(--space-md) 0;
     border-bottom: 1px solid var(--color-border);
