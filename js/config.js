@@ -17,7 +17,7 @@ const CONFIG = {
     refreshInterval: 300,
 
     // Apariencia
-    theme: "dark", // "dark" | "light"
+    theme: "light", // "dark" | "light"
     language: "es",
 
 };
