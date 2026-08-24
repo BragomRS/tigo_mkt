@@ -108,6 +108,47 @@ function drawGauge(canvas, { value, max }) {
     });
 }
 
+// Dibuja un gráfico de barras horizontal con el desglose de respuestas de
+// una pregunta (entries ya viene ordenado de mayor a menor). Se usa dentro
+// de la misma tarjeta del velocímetro cuando hay más de una difusión
+// seleccionada, para ver cómo se compone el total consolidado.
+function drawAnswerBreakdown(canvas, entries) {
+    const tokens = ChartService.getThemeTokens();
+
+    return new Chart(canvas.getContext("2d"), {
+        type: "bar",
+        data: {
+            labels: entries.map(([answer]) => answer),
+            datasets: [{
+                label: "Respuestas",
+                data: entries.map(([, count]) => count),
+                backgroundColor: tokens.series1,
+                borderRadius: 4,
+                maxBarThickness: 28,
+            }],
+        },
+        options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { precision: 0, color: tokens.muted },
+                    grid: { color: tokens.grid },
+                },
+                y: {
+                    ticks: { color: tokens.muted },
+                    grid: { display: false },
+                },
+            },
+        },
+    });
+}
+
 function renderGauge() {
     const canvas = document.getElementById("gaugeRespuestasCanvas");
     const valueLabel = $("#gaugeRespuestasValue");
@@ -167,7 +208,11 @@ function renderQuestionGauges(selectedDifusiones) {
         return sum + (campaignRows.find((row) => row.difusion === difusion)?.mensajesEnviados ?? 0);
     }, 0);
 
+    // answersByTotalQuestion solo se necesita para el desglose que aparece
+    // cuando hay más de una difusión seleccionada (con una sola, el desglose
+    // no aporta nada nuevo respecto al gráfico de "Resultados por difusión").
     const totalsByQuestion = {};
+    const answersByQuestion = {};
     selectedDifusiones.forEach((difusion) => {
         const stats = byCampaign[difusion];
         if (!stats) return;
@@ -175,8 +220,15 @@ function renderQuestionGauges(selectedDifusiones) {
         Object.entries(stats.questions).forEach(([question, tally]) => {
             const questionResponses = Object.values(tally).reduce((sum, count) => sum + count, 0);
             totalsByQuestion[question] = (totalsByQuestion[question] || 0) + questionResponses;
+
+            if (!answersByQuestion[question]) answersByQuestion[question] = {};
+            Object.entries(tally).forEach(([answer, count]) => {
+                answersByQuestion[question][answer] = (answersByQuestion[question][answer] || 0) + count;
+            });
         });
     });
+
+    const showBreakdown = selectedDifusiones.length > 1;
 
     const ranked = Object.entries(totalsByQuestion).sort((a, b) => b[1] - a[1]);
 
@@ -192,15 +244,20 @@ function renderQuestionGauges(selectedDifusiones) {
         const card = document.createElement("div");
         card.className = "card gauge-widget";
 
+        const visual = document.createElement("div");
+        visual.className = "gauge-visual";
+
         const canvas = document.createElement("canvas");
-        card.appendChild(canvas);
+        visual.appendChild(canvas);
 
         const percent = maxTotal > 0 ? Math.round((count / maxTotal) * 100) : 0;
         const valueEl = document.createElement("div");
         valueEl.className = "gauge-value gauge-value-text";
         valueEl.textContent = `${formatNumber(count)} respuesta${count === 1 ? "" : "s"} de ` +
             `${formatNumber(maxTotal)} mensaje${maxTotal === 1 ? "" : "s"} enviado${maxTotal === 1 ? "" : "s"} (${percent}%)`;
-        card.appendChild(valueEl);
+        visual.appendChild(valueEl);
+
+        card.appendChild(visual);
 
         const labelEl = document.createElement("div");
         labelEl.className = "gauge-label";
@@ -209,6 +266,21 @@ function renderQuestionGauges(selectedDifusiones) {
 
         container.appendChild(card);
         questionGaugeInstances.push(drawGauge(canvas, { value: count, max: maxTotal }));
+
+        if (showBreakdown) {
+            const entries = Object.entries(answersByQuestion[question] || {}).sort((a, b) => b[1] - a[1]);
+
+            if (entries.length) {
+                const breakdownWrap = document.createElement("div");
+                breakdownWrap.className = "gauge-breakdown";
+
+                const breakdownCanvas = document.createElement("canvas");
+                breakdownWrap.appendChild(breakdownCanvas);
+                card.appendChild(breakdownWrap);
+
+                questionGaugeInstances.push(drawAnswerBreakdown(breakdownCanvas, entries));
+            }
+        }
     });
 }
 

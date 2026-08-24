@@ -391,16 +391,30 @@ a {
 }
 
 .gauge-widget {
-    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: var(--space-lg);
 }
 
+.gauge-visual {
+    position: relative;
+    width: 100%;
+}
+
 .gauge-widget canvas {
     width: 100% !important;
     max-height: 160px;
+}
+
+.gauge-breakdown {
+    width: 100%;
+    height: 220px;
+    margin-top: var(--space-lg);
+}
+
+.gauge-breakdown canvas {
+    max-height: none;
 }
 
 .gauge-value {
