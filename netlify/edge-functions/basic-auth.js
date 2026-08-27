@@ -17,8 +17,11 @@
  */
 
 export default async (request, context) => {
-    const expectedUser = Netlify.env.get("BASIC_AUTH_USER");
-    const expectedPass = Netlify.env.get("BASIC_AUTH_PASS");
+    // .trim() por si el valor quedó con un espacio o salto de línea pegado
+    // al copiarlo en el panel de Netlify -- causa muy común de que
+    // credenciales "correctas" no coincidan.
+    const expectedUser = Netlify.env.get("BASIC_AUTH_USER")?.trim();
+    const expectedPass = Netlify.env.get("BASIC_AUTH_PASS")?.trim();
 
     // Sin credenciales configuradas en Netlify, no hay nada contra qué
     // validar: se bloquea todo (fail-closed) en vez de dejar el sitio

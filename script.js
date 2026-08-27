@@ -4,6 +4,25 @@
  * sin que los módulos de UI necesiten cambiar a medida que se agreguen fases.
  */
 
+// El dashboard tiene que pedir contraseña cada vez que alguien entra, no
+// confiar en que el navegador la recuerde de una visita a la otra. Basic
+// Auth no tiene un "expirar sesión" real (no hay sesión en el servidor que
+// invalidar) -- el truco que sí funciona en la práctica: al SALIR de la
+// página, mandarle al navegador una credencial incorrecta a propósito para
+// que reemplace la buena que tenía guardada. La próxima vez que alguien
+// abra el dashboard, esa credencial falsa falla y aparece el popup de login
+// de nuevo. Se dispara en pagehide (no beforeunload, que es menos
+// confiable) con fetch keepalive para que la petición llegue a completarse
+// aunque la pestaña ya se esté cerrando. Si el sitio no tiene Basic Auth
+// (ej. en desarrollo local), esto no hace nada.
+window.addEventListener("pagehide", () => {
+    fetch(window.location.pathname, {
+        headers: { Authorization: "Basic " + btoa("logout:logout") },
+        keepalive: true,
+        cache: "no-store",
+    }).catch(() => {});
+});
+
 let dashboardData = null;
 
 // CSV crudo cacheado tras la primera descarga: cambiar el filtro de mes
