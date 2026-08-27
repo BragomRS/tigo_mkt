@@ -180,19 +180,24 @@ a {
     display: flex;
     align-items: center;
     gap: var(--space-xs);
-    padding: 6px var(--space-sm);
+    padding: 8px var(--space-md);
     border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
     font-size: 13px;
-    font-weight: 500;
-    color: var(--color-text-secondary);
-    background: var(--color-bg-hover);
-    transition: background var(--transition-fast), color var(--transition-fast);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    background: var(--color-bg-elevated);
+    box-shadow: var(--shadow-sm);
+    transition: background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .month-filter-btn:hover {
-    background: var(--color-bg);
-    color: var(--color-text-primary);
+    background: var(--color-bg-hover);
+    box-shadow: var(--shadow-md);
+}
+
+.month-filter-btn:active {
+    transform: translateY(1px);
 }
 
 .month-filter-panel {
@@ -620,6 +625,10 @@ a {
 
 .chart-card .card-body canvas {
     width: 100% !important;
+}
+
+#entregasErrorsCard .card-body {
+    overflow-y: auto;
 }
 
 .table-card .card-body {

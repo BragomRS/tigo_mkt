@@ -53,10 +53,16 @@ function splitDateTime(rawValue) {
 // criterio que splitDateTime/extractDayKey) para no correr la fecha por
 // husos horarios. filter = { year, month } con month 1-12, o null/undefined
 // para no filtrar (reporte histórico completo).
+//
+// Algunas filas llegan con dispatched_at vacío pero sent_at sí presente
+// (mensajes que se enviaron pero no quedó registrado cuándo se despachó);
+// sin este respaldo, esas filas no pueden ubicarse en ningún mes y
+// desaparecen apenas se filtra por un mes puntual, aunque sí correspondan
+// a datos reales y válidos.
 function matchesMonthFilter(row, filter) {
     if (!filter || filter.year == null || filter.month == null) return true;
 
-    const raw = row.dispatched_at;
+    const raw = row.dispatched_at || row.sent_at;
     if (!raw) return false;
 
     const match = String(raw).trim().match(/^(\d{4})-(\d{2})/);
@@ -65,6 +71,18 @@ function matchesMonthFilter(row, filter) {
     const rowYear = Number(match[1]);
     const rowMonth = Number(match[2]);
     return rowYear === filter.year && rowMonth === filter.month;
+}
+
+// Clasifica cada fila en un único estado según lo más lejos que llegó en el
+// embudo (sin doble conteo): Leído > Entregado sin leer > Enviado sin
+// entregar > Con error. Cualquier fila que no llegó a enviarse cae en
+// "Con error", tenga o no error_code registrado (algunos despachos quedan
+// sin ese dato aunque nunca se enviaron).
+function classifyDeliveryStatus(row) {
+    if (row.read_at) return "Leído";
+    if (row.delivered_at) return "Entregado sin leer";
+    if (row.sent_at) return "Enviado sin entregar";
+    return "Con error";
 }
 
 // output_variables llega como un JSON plano ("pregunta" -> "respuesta").
@@ -305,6 +323,55 @@ const PROCESSORS = [
                 .reduce((sum, campaign) => sum + campaign.totalResponses, 0);
         },
     },
+    {
+        // Análisis de entregas: cantidad de filas con sent_at / delivered_at /
+        // read_at presente, por difusión. El total de filas por difusión (el
+        // universo de "cuántos mensajes se despacharon") ya existe en
+        // dashboardData.tables.campaigns (mensajesEnviados) -- acá se agrega
+        // cuántas de esas filas efectivamente se enviaron, entregaron y
+        // leyeron ("Enviados vs No enviados", "Entregados vs No entregados",
+        // "Leídos vs No leídos"), más la clasificación por estado sin doble
+        // conteo para "Despachos por estado".
+        name: "deliveryByCampaign",
+        createState: () => ({
+            sentByCampaign: {},
+            deliveredByCampaign: {},
+            readByCampaign: {},
+            statusByCampaign: {},
+            errorsByCampaign: {},
+        }),
+        onRow(row, state) {
+            const key = row.campaign_name || "Sin campaña";
+
+            if (row.sent_at) {
+                state.sentByCampaign[key] = (state.sentByCampaign[key] || 0) + 1;
+            }
+            if (row.delivered_at) {
+                state.deliveredByCampaign[key] = (state.deliveredByCampaign[key] || 0) + 1;
+            }
+            if (row.read_at) {
+                state.readByCampaign[key] = (state.readByCampaign[key] || 0) + 1;
+            }
+
+            const status = classifyDeliveryStatus(row);
+            if (!state.statusByCampaign[key]) state.statusByCampaign[key] = {};
+            state.statusByCampaign[key][status] = (state.statusByCampaign[key][status] || 0) + 1;
+
+            // Lista de errores: cada código de error (error_code) que aparezca,
+            // sin importar si ese mensaje luego se llegó a enviar o no.
+            if (row.error_code) {
+                if (!state.errorsByCampaign[key]) state.errorsByCampaign[key] = {};
+                state.errorsByCampaign[key][row.error_code] = (state.errorsByCampaign[key][row.error_code] || 0) + 1;
+            }
+        },
+        finalize(state, dashboardData) {
+            dashboardData.delivery.sentByCampaign = state.sentByCampaign;
+            dashboardData.delivery.deliveredByCampaign = state.deliveredByCampaign;
+            dashboardData.delivery.readByCampaign = state.readByCampaign;
+            dashboardData.delivery.statusByCampaign = state.statusByCampaign;
+            dashboardData.delivery.errorsByCampaign = state.errorsByCampaign;
+        },
+    },
 ];
 
 function createDashboardData() {
@@ -316,6 +383,13 @@ function createDashboardData() {
         filters: {},
         metrics: {},
         responses: { byCampaign: {}, totalResponses: 0 },
+        delivery: {
+            sentByCampaign: {},
+            deliveredByCampaign: {},
+            readByCampaign: {},
+            statusByCampaign: {},
+            errorsByCampaign: {},
+        },
     };
 }
 

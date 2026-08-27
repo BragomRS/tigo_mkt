@@ -45,6 +45,7 @@ async function renderWithCurrentFilter() {
 
     const difusiones = (dashboardData.tables.campaigns || []).map((row) => row.difusion);
     RespuestasView.setDifusiones(difusiones);
+    EntregasView.setDifusiones(difusiones);
 
     const lastUpdated = $("#lastUpdated");
     if (lastUpdated) {
@@ -150,9 +151,20 @@ function drawAnswerBreakdown(canvas, entries) {
 }
 
 function renderGauge() {
-    const canvas = document.getElementById("gaugeRespuestasCanvas");
-    const valueLabel = $("#gaugeRespuestasValue");
-    if (!canvas || !dashboardData) return;
+    const container = $("#gaugeGrid");
+    if (!container || !dashboardData) return;
+
+    gaugeChartInstance?.destroy();
+    gaugeChartInstance = null;
+    container.innerHTML = "";
+
+    if (!gaugeSelectedDifusiones.length) {
+        container.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar para ver los gráficos de respuestas.",
+        }));
+        return;
+    }
 
     const byCampaign = dashboardData.responses?.byCampaign || {};
     const campaignRows = dashboardData.tables.campaigns || [];
@@ -165,13 +177,29 @@ function renderGauge() {
     }, 0);
     const percent = max > 0 ? Math.round((value / max) * 100) : 0;
 
-    if (valueLabel) {
-        valueLabel.textContent = gaugeSelectedDifusiones.length
-            ? `${formatNumber(value)} / ${formatNumber(max)} (${percent}%)`
-            : "--";
-    }
+    const widget = document.createElement("div");
+    widget.className = "card gauge-widget";
 
-    gaugeChartInstance?.destroy();
+    const visual = document.createElement("div");
+    visual.className = "gauge-visual";
+
+    const canvas = document.createElement("canvas");
+    visual.appendChild(canvas);
+
+    const valueEl = document.createElement("div");
+    valueEl.className = "gauge-value";
+    valueEl.textContent = `${formatNumber(value)} / ${formatNumber(max)} (${percent}%)`;
+    visual.appendChild(valueEl);
+
+    widget.appendChild(visual);
+
+    const labelEl = document.createElement("div");
+    labelEl.className = "gauge-label";
+    labelEl.textContent = "Respuestas sobre mensajes enviados";
+    widget.appendChild(labelEl);
+
+    container.appendChild(widget);
+
     gaugeChartInstance = drawGauge(canvas, { value, max });
 }
 
@@ -196,7 +224,7 @@ function renderQuestionGauges(selectedDifusiones) {
     if (!selectedDifusiones.length) {
         container.appendChild(Components.createEmptyState({
             icon: "🚧",
-            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+            message: "Seleccioná una o más difusiones y presioná Aplicar para ver los gráficos de respuestas.",
         }));
         return;
     }
@@ -284,10 +312,407 @@ function renderQuestionGauges(selectedDifusiones) {
     });
 }
 
+// Instancias de Chart.js de "Análisis de entregas" actualmente montadas
+// (una por donut), para destruirlas antes de la próxima selección.
+let entregasChartInstances = {};
+let entregasSelectedDifusiones = [];
+
+// Plugin de Chart.js (solo para donuts completos, no para los velocímetros
+// que también son type:"doughnut") que dibuja, para cada porción, una línea
+// guía que sale del borde del donut hacia afuera con la cantidad y el
+// porcentaje. Se pasa por chart, no se registra global, para no afectar a
+// los velocímetros de medio círculo.
+const donutCalloutLabels = {
+    id: "donutCalloutLabels",
+    afterDraw(chart) {
+        const meta = chart.getDatasetMeta(0);
+        const dataset = chart.data.datasets[0];
+        if (!meta || !dataset) return;
+
+        const total = dataset.data.reduce((sum, value) => sum + value, 0);
+        if (total <= 0) return;
+
+        const { ctx } = chart;
+        const tokens = ChartService.getThemeTokens();
+        const lineLength = 14;
+        const elbowLength = 18;
+        // Alto mínimo reservado por etiqueta (dos líneas de texto) para que
+        // dos porciones vecinas no terminen con los apuntadores pisados.
+        const minLabelGap = 30;
+
+        const items = meta.data.map((arc, i) => {
+            const value = dataset.data[i];
+            if (!value) return null;
+
+            const { x, y, startAngle, endAngle, outerRadius } = arc.getProps(
+                ["x", "y", "startAngle", "endAngle", "outerRadius"], true
+            );
+            const angle = (startAngle + endAngle) / 2;
+            const isRight = Math.cos(angle) >= 0;
+
+            return {
+                label: chart.data.labels[i],
+                value,
+                percent: Math.round((value / total) * 100),
+                isRight,
+                startX: x + Math.cos(angle) * outerRadius,
+                startY: y + Math.sin(angle) * outerRadius,
+                midX: x + Math.cos(angle) * (outerRadius + lineLength),
+                midY: y + Math.sin(angle) * (outerRadius + lineLength),
+            };
+        }).filter(Boolean);
+
+        // Separar verticalmente los apuntadores que caen del mismo lado y
+        // quedan demasiado cerca entre sí (porciones chicas y vecinas).
+        ["left", "right"].forEach((side) => {
+            const sideItems = items
+                .filter((item) => (side === "right" ? item.isRight : !item.isRight))
+                .sort((a, b) => a.midY - b.midY);
+
+            for (let k = 1; k < sideItems.length; k++) {
+                const minY = sideItems[k - 1].midY + minLabelGap;
+                if (sideItems[k].midY < minY) sideItems[k].midY = minY;
+            }
+        });
+
+        items.forEach(({ label, value, percent, isRight, startX, startY, midX, midY }) => {
+            const endX = midX + (isRight ? elbowLength : -elbowLength);
+
+            ctx.save();
+            ctx.strokeStyle = tokens.muted;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(midX, midY);
+            ctx.lineTo(endX, midY);
+            ctx.stroke();
+
+            const textX = endX + (isRight ? 4 : -4);
+            ctx.textAlign = isRight ? "left" : "right";
+            ctx.textBaseline = "bottom";
+
+            ctx.fillStyle = tokens.textPrimary;
+            ctx.font = "600 12px Inter, sans-serif";
+            ctx.fillText(label, textX, midY - 12);
+
+            ctx.fillStyle = tokens.textSecondary;
+            ctx.font = "400 11px Inter, sans-serif";
+            ctx.fillText(`${formatNumber(value)} (${percent}%)`, textX, midY - 1);
+            ctx.restore();
+        });
+    },
+};
+
+// Dibuja un donut completo (sin recorte de medio círculo, a diferencia de
+// los velocímetros) con leyenda abajo y apuntadores con cantidad/porcentaje
+// saliendo de cada porción. Reutilizable para los distintos donuts de
+// "Análisis de entregas".
+function drawDoughnut(canvas, { labels, values, colors }) {
+    const total = values.reduce((sum, value) => sum + value, 0);
+    const percentOf = (value) => (total > 0 ? Math.round((value / total) * 100) : 0);
+
+    return new Chart(canvas.getContext("2d"), {
+        type: "doughnut",
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderWidth: 0,
+            }],
+        },
+        plugins: [donutCalloutLabels],
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            radius: "90%",
+            layout: {
+                padding: 34,
+            },
+            plugins: {
+                // Sin leyenda: los apuntadores de donutCalloutLabels ya
+                // muestran el nombre, la cantidad y el porcentaje de cada
+                // porción directamente sobre el gráfico.
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `${context.label}: ${formatNumber(context.parsed)} (${percentOf(context.parsed)}%)`,
+                    },
+                },
+            },
+        },
+    });
+}
+
+// Pinta un donut "métrica vs base" (ej. enviados vs despachados, entregados
+// vs enviados) dentro de la tarjeta indicada, sumando las difusiones
+// seleccionadas. baseByDifusion/metricByDifusion reciben el nombre de la
+// difusión y devuelven su cantidad correspondiente.
+function renderDeliveryDonut({ cardBodySelector, instanceKey, labels, selectedDifusiones, baseByDifusion, metricByDifusion }) {
+    const body = $(cardBodySelector);
+    if (!body) return;
+
+    entregasChartInstances[instanceKey]?.destroy();
+    body.innerHTML = "";
+
+    if (!selectedDifusiones.length) {
+        body.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+        }));
+        return;
+    }
+
+    const totalBase = selectedDifusiones.reduce((sum, difusion) => sum + (baseByDifusion(difusion) ?? 0), 0);
+    const totalMetric = selectedDifusiones.reduce((sum, difusion) => sum + (metricByDifusion(difusion) ?? 0), 0);
+    const totalRest = Math.max(totalBase - totalMetric, 0);
+
+    const tokens = ChartService.getThemeTokens();
+    const canvas = document.createElement("canvas");
+    body.appendChild(canvas);
+
+    entregasChartInstances[instanceKey] = drawDoughnut(canvas, {
+        labels,
+        values: [totalMetric, totalRest],
+        colors: [tokens.series1, tokens.grid],
+    });
+}
+
+function readCssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// Orden y color de cada estado del embudo (sin doble conteo, ver
+// classifyDeliveryStatus en el worker). Reutiliza los tokens semánticos ya
+// definidos en style.css para que combine con el resto del tema.
+const DELIVERY_STATUS_STYLE = [
+    { status: "Leído", colorVar: "--color-success" },
+    { status: "Entregado sin leer", colorVar: "--viz-series-1" },
+    { status: "Enviado sin entregar", colorVar: "--color-warning" },
+    { status: "Con error", colorVar: "--color-danger" },
+];
+
+// "Despachos por estado": a diferencia de los otros donuts (métrica vs
+// resto), acá se consolidan las 4 categorías reales sin doble conteo --
+// cada mensaje cuenta en un solo estado, el más avanzado que alcanzó.
+function renderEstadoDonut(selectedDifusiones) {
+    const body = $("#entregasChartEstadoCard .card-body");
+    if (!body) return;
+
+    entregasChartInstances.estado?.destroy();
+    body.innerHTML = "";
+
+    if (!selectedDifusiones.length) {
+        body.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+        }));
+        return;
+    }
+
+    const statusByCampaign = dashboardData?.delivery?.statusByCampaign || {};
+    const totals = {};
+    selectedDifusiones.forEach((difusion) => {
+        const statuses = statusByCampaign[difusion];
+        if (!statuses) return;
+        Object.entries(statuses).forEach(([status, count]) => {
+            totals[status] = (totals[status] || 0) + count;
+        });
+    });
+
+    const present = DELIVERY_STATUS_STYLE.filter(({ status }) => totals[status] > 0);
+
+    if (!present.length) {
+        body.appendChild(Components.createEmptyState({
+            icon: "📭",
+            message: "Sin datos para esta selección.",
+        }));
+        return;
+    }
+
+    const canvas = document.createElement("canvas");
+    body.appendChild(canvas);
+
+    entregasChartInstances.estado = drawDoughnut(canvas, {
+        labels: present.map(({ status }) => status),
+        values: present.map(({ status }) => totals[status]),
+        colors: present.map(({ colorVar }) => readCssVar(colorVar)),
+    });
+}
+
+// Nombres oficiales de los códigos de error de la API de WhatsApp Cloud
+// (Meta), en español. error_msg viene vacío en los datos de la hoja, así
+// que el nombre legible sale de esta tabla en vez de la fila. Fuente:
+// https://developers.facebook.com/documentation/business-messaging/whatsapp/support/error-codes
+const WHATSAPP_ERROR_NAMES = {
+    "130429": "Límite de envíos alcanzado",
+    "131026": "Mensaje no entregable",
+    "131047": "Fuera de la ventana de 24 horas",
+    "131051": "Tipo de mensaje no soportado",
+    "131052": "No se pudo descargar el archivo multimedia",
+    "131053": "No se pudo subir el archivo multimedia",
+    "131056": "Exceso de mensajes al mismo destinatario",
+    "132000": "Parámetros de la plantilla no coinciden",
+    "133010": "Número no registrado en WhatsApp Business",
+    "368": "Cuenta de WhatsApp Business restringida",
+};
+
+// Lista de errores: cada error_code que aparezca (sin importar si ese
+// mensaje se llegó a enviar después), consolidado entre las difusiones
+// seleccionadas y ordenado de mayor a menor cantidad.
+function renderEntregasErrors(selectedDifusiones) {
+    const container = $("#entregasErrorsContainer");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (!selectedDifusiones.length) {
+        container.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+        }));
+        return;
+    }
+
+    const errorsByCampaign = dashboardData?.delivery?.errorsByCampaign || {};
+    const totals = {};
+    selectedDifusiones.forEach((difusion) => {
+        const errors = errorsByCampaign[difusion];
+        if (!errors) return;
+        Object.entries(errors).forEach(([code, count]) => {
+            totals[code] = (totals[code] || 0) + count;
+        });
+    });
+
+    const rows = Object.entries(totals)
+        .sort((a, b) => b[1] - a[1])
+        .map(([codigo, cantidad]) => ({
+            codigo,
+            nombre: WHATSAPP_ERROR_NAMES[codigo] || "Código no identificado",
+            cantidad,
+        }));
+
+    if (!rows.length) {
+        container.appendChild(Components.createEmptyState({
+            icon: "✅",
+            message: "Sin errores registrados para esta selección.",
+        }));
+        return;
+    }
+
+    Components.renderTable(container, {
+        columns: [
+            { key: "codigo", label: "Código" },
+            { key: "nombre", label: "Nombre del error" },
+            { key: "cantidad", label: "Cantidad", format: formatNumber },
+        ],
+        rows,
+    });
+}
+
+// Detalle por difusión: una fila por CADA difusión seleccionada (sin
+// consolidar, a diferencia de los donuts) con solicitados, enviados, no
+// enviados, entregados, no entregados y errores.
+function renderEntregasSummaryTable(selectedDifusiones) {
+    const container = $("#entregasSummaryContainer");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (!selectedDifusiones.length) {
+        container.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+        }));
+        return;
+    }
+
+    const campaignRows = dashboardData?.tables.campaigns || [];
+    const sentByCampaign = dashboardData?.delivery?.sentByCampaign || {};
+    const deliveredByCampaign = dashboardData?.delivery?.deliveredByCampaign || {};
+    const errorsByCampaign = dashboardData?.delivery?.errorsByCampaign || {};
+
+    const rows = selectedDifusiones.map((difusion) => {
+        const solicitados = campaignRows.find((row) => row.difusion === difusion)?.mensajesEnviados ?? 0;
+        const enviados = sentByCampaign[difusion] ?? 0;
+        const entregados = deliveredByCampaign[difusion] ?? 0;
+        const errores = Object.values(errorsByCampaign[difusion] || {}).reduce((sum, count) => sum + count, 0);
+
+        return {
+            difusion,
+            solicitados,
+            enviados,
+            noEnviados: Math.max(solicitados - enviados, 0),
+            entregados,
+            noEntregados: Math.max(enviados - entregados, 0),
+            errores,
+        };
+    });
+
+    Components.renderTable(container, {
+        columns: [
+            { key: "difusion", label: "Difusión", format: formatDifusionName },
+            { key: "solicitados", label: "Solicitados", format: formatNumber },
+            { key: "enviados", label: "Enviados", format: formatNumber },
+            { key: "noEnviados", label: "No enviados", format: formatNumber },
+            { key: "entregados", label: "Entregados", format: formatNumber },
+            { key: "noEntregados", label: "No entregados", format: formatNumber },
+            { key: "errores", label: "Errores", format: formatNumber },
+        ],
+        rows,
+    });
+}
+
+function renderEntregasCharts(selectedDifusiones) {
+    const campaignRows = dashboardData?.tables.campaigns || [];
+    const sentByCampaign = dashboardData?.delivery?.sentByCampaign || {};
+    const deliveredByCampaign = dashboardData?.delivery?.deliveredByCampaign || {};
+    const readByCampaign = dashboardData?.delivery?.readByCampaign || {};
+
+    // Enviados vs No enviados: Enviados = sent_at presente; base = total de
+    // mensajes despachados de la difusión (mensajesEnviados de
+    // dashboardData.tables.campaigns, que cuenta TODAS las filas).
+    renderDeliveryDonut({
+        cardBodySelector: "#entregasChartEnviadosCard .card-body",
+        instanceKey: "enviados",
+        labels: ["Enviados", "No enviados"],
+        selectedDifusiones,
+        baseByDifusion: (difusion) => campaignRows.find((row) => row.difusion === difusion)?.mensajesEnviados,
+        metricByDifusion: (difusion) => sentByCampaign[difusion],
+    });
+
+    // Entregados vs No entregados: Entregados = delivered_at presente;
+    // base = mensajes enviados (solo lo que se envió puede entregarse).
+    renderDeliveryDonut({
+        cardBodySelector: "#entregasChartEntregadosCard .card-body",
+        instanceKey: "entregados",
+        labels: ["Entregados", "No entregados"],
+        selectedDifusiones,
+        baseByDifusion: (difusion) => sentByCampaign[difusion],
+        metricByDifusion: (difusion) => deliveredByCampaign[difusion],
+    });
+
+    // Leídos vs No leídos: Leídos = read_at presente;
+    // base = mensajes entregados (solo lo entregado puede leerse).
+    renderDeliveryDonut({
+        cardBodySelector: "#entregasChartLeidosCard .card-body",
+        instanceKey: "leidos",
+        labels: ["Leídos", "No leídos"],
+        selectedDifusiones,
+        baseByDifusion: (difusion) => deliveredByCampaign[difusion],
+        metricByDifusion: (difusion) => readByCampaign[difusion],
+    });
+
+    renderEstadoDonut(selectedDifusiones);
+    renderEntregasErrors(selectedDifusiones);
+    renderEntregasSummaryTable(selectedDifusiones);
+}
+
 document.addEventListener("themechange", () => {
     if (!dashboardData) return;
     renderGauge();
     renderQuestionGauges(gaugeSelectedDifusiones);
+    renderEntregasCharts(entregasSelectedDifusiones);
 });
 
 // Ids de los gráficos de respuestas actualmente montados, para poder
@@ -311,7 +736,7 @@ function renderRespuestasResultado(selectedDifusiones) {
     if (!selectedDifusiones.length) {
         body.appendChild(Components.createEmptyState({
             icon: "🚧",
-            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+            message: "Seleccioná una o más difusiones y presioná Aplicar para ver los gráficos de respuestas.",
         }));
         return;
     }
@@ -419,6 +844,16 @@ document.addEventListener("DOMContentLoaded", () => {
             renderGauge();
             renderQuestionGauges(difusionesSeleccionadas);
             renderRespuestasResultado(difusionesSeleccionadas);
+        },
+    });
+
+    // "Entregados vs No entregados", "Leídos vs No leídos" y "Despachos por
+    // estado" siguen pendientes de definir -- por ahora solo se resuelve
+    // "Enviados vs No enviados".
+    EntregasView.init({
+        onApply: (difusionesSeleccionadas) => {
+            entregasSelectedDifusiones = difusionesSeleccionadas;
+            renderEntregasCharts(difusionesSeleccionadas);
         },
     });
 

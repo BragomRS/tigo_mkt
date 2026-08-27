@@ -21,13 +21,13 @@ const KPI_DEFINITIONS = [
     },
     {
         key: "mensajesEnviados",
-        label: "Mensajes enviados",
+        label: "Mensajes solicitados",
         icon: "📤",
         format: (value) => formatNumber(value),
     },
     {
         key: "mensajesEntregados",
-        label: "Total de mensajes entregados",
+        label: "Total de mensajes enviados",
         icon: "✅",
         format: (value) => formatNumber(value),
     },

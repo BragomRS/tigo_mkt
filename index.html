@@ -52,6 +52,10 @@
                 <span class="sidebar-link-icon">📊 </span>
                 <span class="sidebar-link-text">Resumen</span>
             </a>
+            <a class="sidebar-link" href="#" data-view="entregasView">
+                <span class="sidebar-link-icon">🚚 </span>
+                <span class="sidebar-link-text">Análisis de entregas</span>
+            </a>
             <a class="sidebar-link" href="#" data-view="respuestasView">
                 <span class="sidebar-link-icon">💬 </span>
                 <span class="sidebar-link-text">Respuestas</span>
@@ -134,29 +138,119 @@
 
       </div>
 
-      <div class="view hidden" id="respuestasView">
+      <div class="view hidden" id="entregasView">
 
-        <div class="card filter-card">
-            <div class="card-header">
-                <h3>Difusiones</h3>
+        <div class="difusiones-filter">
+            <button id="entregasFilterToggle" class="month-filter-btn" type="button" aria-haspopup="true" aria-expanded="false">
+                <span class="month-filter-icon">📣</span>
+                <span id="entregasFilterLabel">Seleccionar difusiones</span>
+            </button>
+            <div id="entregasFilterPanel" class="month-filter-panel difusiones-filter-panel">
+                <label class="difusion-option difusion-select-all">
+                    <input type="checkbox" id="entregasFilterSelectAll">
+                    <span>Seleccionar todos</span>
+                </label>
+                <div id="entregasFilterList" class="difusiones-filter-list"></div>
+                <div class="month-filter-actions">
+                    <button id="entregasFilterClear" class="btn-secondary" type="button">Limpiar</button>
+                    <button id="entregasFilterApply" class="btn-primary" type="button">Aplicar</button>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="difusiones-filter">
-                    <button id="difusionesFilterToggle" class="month-filter-btn" type="button" aria-haspopup="true" aria-expanded="false">
-                        <span class="month-filter-icon">📣</span>
-                        <span id="difusionesFilterLabel">Seleccionar difusiones</span>
-                    </button>
-                    <div id="difusionesFilterPanel" class="month-filter-panel difusiones-filter-panel">
-                        <label class="difusion-option difusion-select-all">
-                            <input type="checkbox" id="difusionesFilterSelectAll">
-                            <span>Seleccionar todos</span>
-                        </label>
-                        <div id="difusionesFilterList" class="difusiones-filter-list"></div>
-                        <div class="month-filter-actions">
-                            <button id="difusionesFilterClear" class="btn-secondary" type="button">Limpiar</button>
-                            <button id="difusionesFilterApply" class="btn-primary" type="button">Aplicar</button>
+        </div>
+
+        <!-- Donuts de entregas: lógica de cálculo pendiente de definir. -->
+        <section class="charts-grid" id="entregasChartsGrid">
+            <div class="card chart-card placeholder" id="entregasChartEnviadosCard">
+                <div class="card-header">
+                    <h3>Enviados vs No enviados</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📊</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card chart-card placeholder" id="entregasChartEntregadosCard">
+                <div class="card-header">
+                    <h3>Entregados vs No entregados</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📊</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card chart-card placeholder" id="entregasChartLeidosCard">
+                <div class="card-header">
+                    <h3>Leídos vs No leídos</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📊</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card chart-card placeholder" id="entregasChartEstadoCard">
+                <div class="card-header">
+                    <h3>Despachos por estado</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📊</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card chart-card placeholder" id="entregasErrorsCard">
+                <div class="card-header">
+                    <h3>Errores</h3>
+                </div>
+                <div class="card-body">
+                    <div id="entregasErrorsContainer">
+                        <div class="empty-state">
+                            <span class="empty-state-icon">🚧</span>
+                            <p>Seleccioná una o más difusiones y presioná Aplicar.</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="card table-card" id="entregasSummaryCard">
+            <div class="card-header">
+                <h3>Detalle por difusión</h3>
+            </div>
+            <div class="card-body">
+                <div id="entregasSummaryContainer" class="table-scroll">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">🚧</span>
+                        <p>Seleccioná una o más difusiones y presioná Aplicar.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+      </div>
+
+      <div class="view hidden" id="respuestasView">
+
+        <div class="difusiones-filter">
+            <button id="difusionesFilterToggle" class="month-filter-btn" type="button" aria-haspopup="true" aria-expanded="false">
+                <span class="month-filter-icon">📣</span>
+                <span id="difusionesFilterLabel">Seleccionar difusiones</span>
+            </button>
+            <div id="difusionesFilterPanel" class="month-filter-panel difusiones-filter-panel">
+                <label class="difusion-option difusion-select-all">
+                    <input type="checkbox" id="difusionesFilterSelectAll">
+                    <span>Seleccionar todos</span>
+                </label>
+                <div id="difusionesFilterList" class="difusiones-filter-list"></div>
+                <div class="month-filter-actions">
+                    <button id="difusionesFilterClear" class="btn-secondary" type="button">Limpiar</button>
+                    <button id="difusionesFilterApply" class="btn-primary" type="button">Aplicar</button>
                 </div>
             </div>
         </div>
@@ -167,12 +261,9 @@
             </div>
             <div class="card-body">
                 <div class="gauge-grid" id="gaugeGrid">
-                    <div class="card gauge-widget">
-                        <div class="gauge-visual">
-                            <canvas id="gaugeRespuestasCanvas"></canvas>
-                            <div class="gauge-value" id="gaugeRespuestasValue">--</div>
-                        </div>
-                        <div class="gauge-label">Respuestas sobre mensajes enviados</div>
+                    <div class="empty-state">
+                        <span class="empty-state-icon">🚧</span>
+                        <p>Seleccioná una o más difusiones y presioná Aplicar para ver los gráficos de respuestas.</p>
                     </div>
                 </div>
             </div>
@@ -186,7 +277,7 @@
                 <div class="gauge-grid" id="answerGaugesGrid">
                     <div class="empty-state">
                         <span class="empty-state-icon">🚧</span>
-                        <p>Seleccioná una o más difusiones y presioná Aplicar.</p>
+                        <p>Seleccioná una o más difusiones y presioná Aplicar para ver los gráficos de respuestas.</p>
                     </div>
                 </div>
             </div>
@@ -228,6 +319,7 @@
     <script src="js/charts.js" defer></script>
     <script src="js/dashboard.js" defer></script>
     <script src="js/respuestas.js" defer></script>
+    <script src="js/entregas.js" defer></script>
     <script src="script.js" defer></script>
 </body>
 </html>
