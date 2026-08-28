@@ -157,10 +157,35 @@ a {
     background: var(--color-bg-hover);
 }
 
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.brand-logo {
+    height: 20px;
+    width: auto;
+}
+
 .brand-name {
     font-weight: 600;
     font-size: 15px;
     letter-spacing: -0.01em;
+}
+
+/* Logos de marca (assets/): cada uno trae una versión clara y una oscura;
+   se muestra la que corresponde al tema activo, sin JS. */
+.logo-dark {
+    display: none;
+}
+
+:root[data-theme="dark"] .logo-light {
+    display: none;
+}
+
+:root[data-theme="dark"] .logo-dark {
+    display: inline-block;
 }
 
 .last-updated {
@@ -460,11 +485,40 @@ a {
     padding: var(--space-lg) var(--space-sm);
     transition: width var(--transition-base);
     overflow: hidden;
-    z-index: 90;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar.collapsed {
     width: var(--sidebar-width-collapsed);
+}
+
+.sidebar-brand {
+    display: flex;
+    justify-content: center;
+    margin-top: auto;
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border);
+}
+
+.sidebar-brand-logo {
+    width: 100px;
+    height: auto;
+}
+
+.sidebar.collapsed .sidebar-brand {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-link-text {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-link {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
 }
 
 .sidebar-nav {
@@ -623,6 +677,17 @@ a {
     height: 220px;
 }
 
+/* Donuts de "Análisis de entregas" más grandes que el resto de los
+   chart-card (Resumen), sin tocar esos otros gráficos. */
+#entregasChartEnviadosCard .card-body,
+#entregasChartEntregadosCard .card-body,
+#entregasChartLeidosCard .card-body,
+#entregasChartEstadoCard .card-body {
+    height: 340px;
+}
+
+
+
 .chart-card .card-body canvas {
     width: 100% !important;
 }
@@ -715,6 +780,18 @@ a {
     pointer-events: all;
 }
 
+.loader-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-lg);
+}
+
+.loader-logo {
+    width: 140px;
+    height: auto;
+}
+
 .spinner {
     width: 36px;
     height: 36px;
@@ -736,6 +813,32 @@ a {
     flex-direction: column;
     gap: var(--space-sm);
     z-index: 1100;
+}
+
+/* Tab flotante pegado al borde derecho, experimental. */
+.powered-by-badge {
+    position: fixed;
+    right: 0;
+    bottom: 100px;
+    width: 28px;
+    padding: var(--space-md) 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-accent);
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
+    box-shadow: var(--shadow-md);
+    z-index: 200;
+}
+
+.powered-by-badge span {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
 }
 
 .notification {

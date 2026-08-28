@@ -359,6 +359,8 @@ const donutCalloutLabels = {
         // dos porciones vecinas no terminen con los apuntadores pisados.
         const minLabelGap = 30;
 
+        const labelLineHeight = 13;
+
         const items = meta.data.map((arc, i) => {
             const value = dataset.data[i];
             if (!value) return null;
@@ -368,9 +370,13 @@ const donutCalloutLabels = {
             );
             const angle = (startAngle + endAngle) / 2;
             const isRight = Math.cos(angle) >= 0;
+            // La etiqueta puede traer "\n" para partirla en varias líneas
+            // (categorías largas como "Enviado\nsin entregar") y ocupar
+            // menos ancho horizontal.
+            const labelLines = String(chart.data.labels[i]).split("\n");
 
             return {
-                label: chart.data.labels[i],
+                labelLines,
                 value,
                 percent: Math.round((value / total) * 100),
                 isRight,
@@ -382,19 +388,26 @@ const donutCalloutLabels = {
         }).filter(Boolean);
 
         // Separar verticalmente los apuntadores que caen del mismo lado y
-        // quedan demasiado cerca entre sí (porciones chicas y vecinas).
+        // quedan demasiado cerca entre sí (porciones chicas y vecinas). Una
+        // etiqueta de 2 líneas necesita más espacio reservado que una de 1.
         ["left", "right"].forEach((side) => {
             const sideItems = items
                 .filter((item) => (side === "right" ? item.isRight : !item.isRight))
                 .sort((a, b) => a.midY - b.midY);
 
             for (let k = 1; k < sideItems.length; k++) {
-                const minY = sideItems[k - 1].midY + minLabelGap;
-                if (sideItems[k].midY < minY) sideItems[k].midY = minY;
+                const prev = sideItems[k - 1];
+                const curr = sideItems[k];
+                // El texto de "curr" crece hacia arriba desde su propio
+                // midY, así que lo que importa para no pisar a "prev" es
+                // la altura de "curr" (no la de "prev").
+                const gap = minLabelGap + (curr.labelLines.length - 1) * labelLineHeight;
+                const minY = prev.midY + gap;
+                if (curr.midY < minY) curr.midY = minY;
             }
         });
 
-        items.forEach(({ label, value, percent, isRight, startX, startY, midX, midY }) => {
+        items.forEach(({ labelLines, value, percent, isRight, startX, startY, midX, midY }) => {
             const endX = midX + (isRight ? elbowLength : -elbowLength);
 
             ctx.save();
@@ -412,7 +425,10 @@ const donutCalloutLabels = {
 
             ctx.fillStyle = tokens.textPrimary;
             ctx.font = "600 12px Inter, sans-serif";
-            ctx.fillText(label, textX, midY - 12);
+            labelLines.forEach((line, i) => {
+                const offsetFromBottom = 12 + (labelLines.length - 1 - i) * labelLineHeight;
+                ctx.fillText(line, textX, midY - offsetFromBottom);
+            });
 
             ctx.fillStyle = tokens.textSecondary;
             ctx.font = "400 11px Inter, sans-serif";
@@ -444,9 +460,9 @@ function drawDoughnut(canvas, { labels, values, colors }) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            radius: "90%",
+            radius: "75%",
             layout: {
-                padding: 34,
+                padding: 40,
             },
             plugins: {
                 // Sin leyenda: los apuntadores de donutCalloutLabels ya
@@ -504,11 +520,15 @@ function readCssVar(name) {
 // Orden y color de cada estado del embudo (sin doble conteo, ver
 // classifyDeliveryStatus en el worker). Reutiliza los tokens semánticos ya
 // definidos en style.css para que combine con el resto del tema.
+// "label" es lo que se dibuja en el apuntador (puede tener un salto de
+// línea con "\n" para acortar el ancho que ocupa); "status" es la clave real
+// de los datos (tiene que matchear tal cual con classifyDeliveryStatus en
+// el worker), así que no lleva el salto de línea.
 const DELIVERY_STATUS_STYLE = [
-    { status: "Leído", colorVar: "--color-success" },
-    { status: "Entregado sin leer", colorVar: "--viz-series-1" },
-    { status: "Enviado sin entregar", colorVar: "--color-warning" },
-    { status: "Con error", colorVar: "--color-danger" },
+    { status: "Leído", label: "Leído", colorVar: "--color-success" },
+    { status: "Entregado sin leer", label: "Entregado\nsin leer", colorVar: "--viz-series-1" },
+    { status: "Enviado sin entregar", label: "Enviado\nsin entregar", colorVar: "--color-warning" },
+    { status: "Con error", label: "Con error", colorVar: "--color-danger" },
 ];
 
 // "Despachos por estado": a diferencia de los otros donuts (métrica vs
@@ -553,7 +573,7 @@ function renderEstadoDonut(selectedDifusiones) {
     body.appendChild(canvas);
 
     entregasChartInstances.estado = drawDoughnut(canvas, {
-        labels: present.map(({ status }) => status),
+        labels: present.map(({ label }) => label),
         values: present.map(({ status }) => totals[status]),
         colors: present.map(({ colorVar }) => readCssVar(colorVar)),
     });

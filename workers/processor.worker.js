@@ -34,7 +34,9 @@ function extractDayKey(rawValue) {
 
 // Separa fecha y hora tal cual vienen escritas en dispatched_at, sin pasar
 // por Date/toISOString (eso convierte a UTC y corre la hora respecto a la
-// hoja). Es un corte literal de texto: "2026-07-27 10:23:00" -> fecha/hora.
+// hoja). Es un corte literal de texto: "2026-07-27 10:23:00.688000" ->
+// fecha "2026-07-27" / hora "10:23:00" (se descartan los microsegundos,
+// que vienen siempre en el dato crudo pero no aportan nada a la tabla).
 function splitDateTime(rawValue) {
     if (!rawValue) return { date: "", time: "" };
 
@@ -42,7 +44,7 @@ function splitDateTime(rawValue) {
     const match = trimmed.match(/^(.*?)[ T](.*)$/);
 
     if (match) {
-        return { date: match[1], time: match[2] };
+        return { date: match[1], time: match[2].replace(/\.\d+$/, "") };
     }
 
     return { date: trimmed, time: "" };
