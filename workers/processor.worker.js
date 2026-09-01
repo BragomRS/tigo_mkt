@@ -360,8 +360,10 @@ const PROCESSORS = [
             state.statusByCampaign[key][status] = (state.statusByCampaign[key][status] || 0) + 1;
 
             // Lista de errores: cada código de error (error_code) que aparezca,
-            // sin importar si ese mensaje luego se llegó a enviar o no.
-            if (row.error_code) {
+            // pero solo si el mensaje nunca se llegó a enviar (sent_at vacío).
+            // Si tiene error_code pero sí tiene sent_at, es un falso positivo
+            // (el error no impidió el envío) y no debe contarse acá.
+            if (row.error_code && !row.sent_at) {
                 if (!state.errorsByCampaign[key]) state.errorsByCampaign[key] = {};
                 state.errorsByCampaign[key][row.error_code] = (state.errorsByCampaign[key][row.error_code] || 0) + 1;
             }

@@ -596,9 +596,9 @@ const WHATSAPP_ERROR_NAMES = {
     "368": "Cuenta de WhatsApp Business restringida",
 };
 
-// Lista de errores: cada error_code que aparezca (sin importar si ese
-// mensaje se llegó a enviar después), consolidado entre las difusiones
-// seleccionadas y ordenado de mayor a menor cantidad.
+// Lista de errores: cada error_code de mensajes que nunca se llegaron a
+// enviar (sent_at vacío -- ver errorsByCampaign en el worker), consolidado
+// entre las difusiones seleccionadas y ordenado de mayor a menor cantidad.
 function renderEntregasErrors(selectedDifusiones) {
     const container = $("#entregasErrorsContainer");
     if (!container) return;
@@ -862,8 +862,6 @@ function renderRespuestasResultado(selectedDifusiones) {
 document.addEventListener("DOMContentLoaded", () => {
 
     document.title = CONFIG.appTitle;
-    const appTitleEl = $("#appTitle");
-    if (appTitleEl) appTitleEl.textContent = CONFIG.appTitle;
 
     UI.initTheme();
     UI.bindSidebarNav();
