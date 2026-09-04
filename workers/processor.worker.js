@@ -101,6 +101,36 @@ function parseOutputVariables(rawValue) {
     }
 }
 
+// link_clicks llega como un JSON array: un objeto por cada vez que el
+// contacto clickeó el link del mensaje (puede repetirse). Filas sin clics
+// lo traen vacío; se descartan silenciosamente las que no sean JSON válido.
+function parseLinkClicks(rawValue) {
+    if (!rawValue) return null;
+
+    try {
+        const parsed = JSON.parse(rawValue);
+        return (Array.isArray(parsed) && parsed.length > 0) ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
+// El dispositivo del clic sale del userAgent, que viene como JSON string
+// anidado dentro de click_metadata (ver ejemplo real en el comentario del
+// processor "clicksByCampaign"). Solo interesa distinguir iOS/Android/Otro.
+function classifyClickDevice(click) {
+    let userAgent = "";
+    try {
+        userAgent = JSON.parse(click.click_metadata || "{}").userAgent || "";
+    } catch {
+        userAgent = "";
+    }
+
+    if (/iphone|ipad|ios/i.test(userAgent)) return "iOS";
+    if (/android/i.test(userAgent)) return "Android";
+    return "Otro";
+}
+
 const PROCESSORS = [
     {
         name: "meta",
@@ -376,6 +406,69 @@ const PROCESSORS = [
             dashboardData.delivery.errorsByCampaign = state.errorsByCampaign;
         },
     },
+    {
+        // Clics en links: cada fila puede traer 0, 1 o varios eventos de
+        // clic en link_clicks. Ejemplo real de un evento:
+        // { "id": "a54004", "url": "https://...", "name": "Explorar paquetigos",
+        //   "customer_context": "{\"isFirstClick\":true, ...}",
+        //   "click_metadata": "{\"userAgent\":\"...iPhone...\"}", "ts": "..." }
+        // Se registra por difusión: cuántos contactos clickearon al menos
+        // una vez (clickedByCampaign, para el donut "Clics únicos vs Sin
+        // clic"), el total de eventos de clic incluyendo repetidos
+        // (totalClicksByCampaign), un desglose por dispositivo
+        // (deviceByCampaign) y qué link específico se clickeó, con clics
+        // únicos y totales por link (linksByCampaign -- distingue por
+        // "name" + "url" juntos, ya que un mismo template puede traer más
+        // de un botón/link, y dos pueden compartir nombre con destinos
+        // distintos).
+        name: "clicksByCampaign",
+        createState: () => ({
+            clickedByCampaign: {},
+            totalClicksByCampaign: {},
+            deviceByCampaign: {},
+            linksByCampaign: {},
+        }),
+        onRow(row, state) {
+            const clicks = parseLinkClicks(row.link_clicks);
+            if (!clicks) return;
+
+            const key = row.campaign_name || "Sin campaña";
+            state.clickedByCampaign[key] = (state.clickedByCampaign[key] || 0) + 1;
+            state.totalClicksByCampaign[key] = (state.totalClicksByCampaign[key] || 0) + clicks.length;
+
+            if (!state.deviceByCampaign[key]) state.deviceByCampaign[key] = {};
+            if (!state.linksByCampaign[key]) state.linksByCampaign[key] = {};
+
+            // "Clics únicos" por link: si esta misma fila (un solo contacto)
+            // clickeó el mismo link más de una vez, cuenta 1 sola vez acá,
+            // aunque sume varias veces a "totalCount".
+            const linksSeenInRow = new Set();
+
+            clicks.forEach((click) => {
+                const device = classifyClickDevice(click);
+                state.deviceByCampaign[key][device] = (state.deviceByCampaign[key][device] || 0) + 1;
+
+                const name = click.name || "Link sin nombre";
+                const url = click.url || "";
+                const linkKey = `${name}::${url}`;
+                if (!state.linksByCampaign[key][linkKey]) {
+                    state.linksByCampaign[key][linkKey] = { totalCount: 0, uniqueCount: 0, name, url };
+                }
+                state.linksByCampaign[key][linkKey].totalCount++;
+
+                if (!linksSeenInRow.has(linkKey)) {
+                    linksSeenInRow.add(linkKey);
+                    state.linksByCampaign[key][linkKey].uniqueCount++;
+                }
+            });
+        },
+        finalize(state, dashboardData) {
+            dashboardData.delivery.clickedByCampaign = state.clickedByCampaign;
+            dashboardData.delivery.totalClicksByCampaign = state.totalClicksByCampaign;
+            dashboardData.delivery.deviceByCampaign = state.deviceByCampaign;
+            dashboardData.delivery.linksByCampaign = state.linksByCampaign;
+        },
+    },
 ];
 
 function createDashboardData() {
@@ -393,6 +486,10 @@ function createDashboardData() {
             readByCampaign: {},
             statusByCampaign: {},
             errorsByCampaign: {},
+            clickedByCampaign: {},
+            totalClicksByCampaign: {},
+            deviceByCampaign: {},
+            linksByCampaign: {},
         },
     };
 }

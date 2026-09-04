@@ -65,6 +65,7 @@ async function renderWithCurrentFilter() {
     const difusiones = (dashboardData.tables.campaigns || []).map((row) => row.difusion);
     RespuestasView.setDifusiones(difusiones);
     EntregasView.setDifusiones(difusiones);
+    ClicksView.setDifusiones(difusiones);
 
     const lastUpdated = $("#lastUpdated");
     if (lastUpdated) {
@@ -579,6 +580,362 @@ function renderEstadoDonut(selectedDifusiones) {
     });
 }
 
+// "Utility vs Marketing": categoría de cada difusión ya viene resuelta por
+// campaña en dashboardData.tables.campaigns (columna templates, ver worker).
+// Las difusiones "Unknown" (sin match de categoría) quedan fuera de este
+// donut porque es específicamente un versus entre esos dos tipos.
+const MESSAGE_CATEGORY_STYLE = [
+    { categoria: "Utility", label: "Utility", colorVar: "--viz-series-1" },
+    { categoria: "Marketing", label: "Marketing", colorVar: "--color-warning" },
+];
+
+function renderTipoMensajeDonut(selectedDifusiones) {
+    const body = $("#entregasChartTipoCard .card-body");
+    if (!body) return;
+
+    entregasChartInstances.tipo?.destroy();
+    body.innerHTML = "";
+
+    if (!selectedDifusiones.length) {
+        body.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+        }));
+        return;
+    }
+
+    const campaignRows = dashboardData?.tables.campaigns || [];
+    const totals = {};
+    selectedDifusiones.forEach((difusion) => {
+        const row = campaignRows.find((r) => r.difusion === difusion);
+        if (!row) return;
+        totals[row.categoria] = (totals[row.categoria] || 0) + row.mensajesEnviados;
+    });
+
+    const present = MESSAGE_CATEGORY_STYLE.filter(({ categoria }) => totals[categoria] > 0);
+
+    if (!present.length) {
+        body.appendChild(Components.createEmptyState({
+            icon: "📭",
+            message: "Sin difusiones de tipo Utility o Marketing para esta selección.",
+        }));
+        return;
+    }
+
+    const canvas = document.createElement("canvas");
+    body.appendChild(canvas);
+
+    entregasChartInstances.tipo = drawDoughnut(canvas, {
+        labels: present.map(({ label }) => label),
+        values: present.map(({ categoria }) => totals[categoria]),
+        colors: present.map(({ colorVar }) => readCssVar(colorVar)),
+    });
+}
+
+let clicksChartInstances = {};
+let clicksSelectedDifusiones = [];
+
+// "Clics únicos vs Sin clic": mismo patrón base/métrica que los donuts de
+// entregas -- base = leídos (solo un mensaje leído pudo generar un clic en
+// su link), métrica = clickedByCampaign ("clics únicos": contactos que
+// clickearon al menos una vez, sin contar repetidos -- distinto de "clics
+// totales", que sí los cuenta; ver clicksByCampaign en el worker).
+function renderClicksDonut(selectedDifusiones) {
+    const body = $("#clicksChartClicsCard .card-body");
+    if (!body) return;
+
+    clicksChartInstances.clics?.destroy();
+    body.innerHTML = "";
+
+    if (!selectedDifusiones.length) {
+        body.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+        }));
+        return;
+    }
+
+    const readByCampaign = dashboardData?.delivery?.readByCampaign || {};
+    const clickedByCampaign = dashboardData?.delivery?.clickedByCampaign || {};
+
+    const totalBase = selectedDifusiones.reduce((sum, difusion) => sum + (readByCampaign[difusion] ?? 0), 0);
+    const totalMetric = selectedDifusiones.reduce((sum, difusion) => sum + (clickedByCampaign[difusion] ?? 0), 0);
+    const totalRest = Math.max(totalBase - totalMetric, 0);
+
+    const tokens = ChartService.getThemeTokens();
+    const canvas = document.createElement("canvas");
+    body.appendChild(canvas);
+
+    clicksChartInstances.clics = drawDoughnut(canvas, {
+        labels: ["Clics únicos", "Sin clic"],
+        values: [totalMetric, totalRest],
+        colors: [tokens.series1, tokens.grid],
+    });
+}
+
+// "Primer clic vs Clics repetidos": composición de "Clics totales" -- base
+// = totalClicksByCampaign (todos los eventos), métrica = clickedByCampaign
+// (la misma base que "Clics únicos", NO firstClickByCampaign del worker:
+// isFirstClick es por link, así que un contacto con más de un link en el
+// mismo mensaje generaría más de un "primer clic" y dejaría de cuadrar con
+// Clics únicos). El resto son clics repetidos: gente que volvió a clickear
+// más de una vez.
+function renderClicksFirstVsRepeatDonut(selectedDifusiones) {
+    const body = $("#clicksChartRepeatCard .card-body");
+    if (!body) return;
+
+    clicksChartInstances.repeat?.destroy();
+    body.innerHTML = "";
+
+    if (!selectedDifusiones.length) {
+        body.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+        }));
+        return;
+    }
+
+    const totalClicksByCampaign = dashboardData?.delivery?.totalClicksByCampaign || {};
+    const clickedByCampaign = dashboardData?.delivery?.clickedByCampaign || {};
+
+    const totalBase = selectedDifusiones.reduce((sum, difusion) => sum + (totalClicksByCampaign[difusion] ?? 0), 0);
+    const totalMetric = selectedDifusiones.reduce((sum, difusion) => sum + (clickedByCampaign[difusion] ?? 0), 0);
+    const totalRest = Math.max(totalBase - totalMetric, 0);
+
+    if (totalBase === 0) {
+        body.appendChild(Components.createEmptyState({
+            icon: "🔗",
+            message: "Sin clics registrados para esta selección.",
+        }));
+        return;
+    }
+
+    const tokens = ChartService.getThemeTokens();
+    const canvas = document.createElement("canvas");
+    body.appendChild(canvas);
+
+    clicksChartInstances.repeat = drawDoughnut(canvas, {
+        labels: ["Primer clic", "Clics repetidos"],
+        values: [totalMetric, totalRest],
+        colors: [tokens.series1, tokens.grid],
+    });
+}
+
+// "Dispositivo del clic": desglose de TODOS los eventos de clic (incluye
+// repetidos, a diferencia del donut anterior) por sistema operativo,
+// clasificado a partir del userAgent en el worker (classifyClickDevice).
+const CLICK_DEVICE_STYLE = [
+    { device: "iOS", label: "iOS", colorVar: "--viz-series-1" },
+    { device: "Android", label: "Android", colorVar: "--color-success" },
+    { device: "Otro", label: "Otro", colorVar: "--color-text-muted" },
+];
+
+function renderClicksDeviceDonut(selectedDifusiones) {
+    const body = $("#clicksChartDeviceCard .card-body");
+    if (!body) return;
+
+    clicksChartInstances.device?.destroy();
+    body.innerHTML = "";
+
+    if (!selectedDifusiones.length) {
+        body.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+        }));
+        return;
+    }
+
+    const deviceByCampaign = dashboardData?.delivery?.deviceByCampaign || {};
+    const totals = {};
+    selectedDifusiones.forEach((difusion) => {
+        const devices = deviceByCampaign[difusion];
+        if (!devices) return;
+        Object.entries(devices).forEach(([device, count]) => {
+            totals[device] = (totals[device] || 0) + count;
+        });
+    });
+
+    const present = CLICK_DEVICE_STYLE.filter(({ device }) => totals[device] > 0);
+
+    if (!present.length) {
+        body.appendChild(Components.createEmptyState({
+            icon: "📭",
+            message: "Sin clics registrados para esta selección.",
+        }));
+        return;
+    }
+
+    const canvas = document.createElement("canvas");
+    body.appendChild(canvas);
+
+    clicksChartInstances.device = drawDoughnut(canvas, {
+        labels: present.map(({ label }) => label),
+        values: present.map(({ device }) => totals[device]),
+        colors: present.map(({ colorVar }) => readCssVar(colorVar)),
+    });
+}
+
+// Consolida linksByCampaign (worker) entre las difusiones seleccionadas --
+// cada link distinto por nombre Y url juntos, porque dos links pueden
+// compartir nombre pero apuntar a destinos distintos -- con clics únicos
+// (contactos distintos) y totales (incluye repetidos), ordenado de mayor a
+// menor clics totales. Compartido entre la dona y la tabla de abajo.
+function getClicksLinkTotals(selectedDifusiones) {
+    const linksByCampaign = dashboardData?.delivery?.linksByCampaign || {};
+    const totals = {};
+    selectedDifusiones.forEach((difusion) => {
+        const links = linksByCampaign[difusion];
+        if (!links) return;
+        Object.entries(links).forEach(([linkKey, { totalCount, uniqueCount, name, url }]) => {
+            if (!totals[linkKey]) totals[linkKey] = { totalCount: 0, uniqueCount: 0, name, url };
+            totals[linkKey].totalCount += totalCount;
+            totals[linkKey].uniqueCount += uniqueCount;
+        });
+    });
+
+    return Object.values(totals).sort((a, b) => b.totalCount - a.totalCount);
+}
+
+// Paleta rotativa para la dona de links: a diferencia de Dispositivo/Estado,
+// la cantidad de links distintos no es un set fijo conocido de antemano.
+const CLICK_LINK_COLOR_VARS = ["--viz-series-1", "--color-success", "--color-warning", "--color-danger", "--color-accent-hover"];
+
+// "Clics totales por link": una porción por cada link distinto que se
+// clickeó, para ver de un vistazo cuál concentra la mayoría de los clics.
+function renderClicksLinksDonut(selectedDifusiones) {
+    const body = $("#clicksChartLinksCard .card-body");
+    if (!body) return;
+
+    clicksChartInstances.links?.destroy();
+    body.innerHTML = "";
+
+    if (!selectedDifusiones.length) {
+        body.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+        }));
+        return;
+    }
+
+    const rows = getClicksLinkTotals(selectedDifusiones);
+
+    if (!rows.length) {
+        body.appendChild(Components.createEmptyState({
+            icon: "🔗",
+            message: "Sin clics registrados para esta selección.",
+        }));
+        return;
+    }
+
+    const canvas = document.createElement("canvas");
+    body.appendChild(canvas);
+
+    clicksChartInstances.links = drawDoughnut(canvas, {
+        labels: rows.map(({ name }) => name),
+        values: rows.map(({ totalCount }) => totalCount),
+        colors: rows.map((_, i) => readCssVar(CLICK_LINK_COLOR_VARS[i % CLICK_LINK_COLOR_VARS.length])),
+    });
+}
+
+// Qué se clickeó y cuánto: mismo desglose que la dona anterior, en formato
+// tabla (incluye la URL de cada link, que no entra en las porciones).
+function renderClicksLinks(selectedDifusiones) {
+    const container = $("#clicksLinksContainer");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (!selectedDifusiones.length) {
+        container.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+        }));
+        return;
+    }
+
+    const rows = getClicksLinkTotals(selectedDifusiones);
+
+    if (!rows.length) {
+        container.appendChild(Components.createEmptyState({
+            icon: "🔗",
+            message: "Sin clics registrados para esta selección.",
+        }));
+        return;
+    }
+
+    Components.renderTable(container, {
+        columns: [
+            { key: "name", label: "Texto mostrado" },
+            { key: "url", label: "URL" },
+            { key: "uniqueCount", label: "Clics únicos", format: formatNumber },
+            { key: "totalCount", label: "Clics totales", format: formatNumber },
+        ],
+        rows,
+    });
+}
+
+// Detalle por difusión: qué link(s) trae (texto mostrado + URL -- si una
+// difusión tiene más de un link distinto, se listan todos separados por
+// coma, ordenados de mayor a menor clics, igual que en "Qué se clickeó"),
+// leídos, clics únicos/sin clic, CTR (clics únicos sobre leídos) y clics
+// totales (incluye repetidos).
+function renderClicksSummaryTable(selectedDifusiones) {
+    const container = $("#clicksSummaryContainer");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (!selectedDifusiones.length) {
+        container.appendChild(Components.createEmptyState({
+            icon: "🚧",
+            message: "Seleccioná una o más difusiones y presioná Aplicar.",
+        }));
+        return;
+    }
+
+    const readByCampaign = dashboardData?.delivery?.readByCampaign || {};
+    const clickedByCampaign = dashboardData?.delivery?.clickedByCampaign || {};
+    const totalClicksByCampaign = dashboardData?.delivery?.totalClicksByCampaign || {};
+    const linksByCampaign = dashboardData?.delivery?.linksByCampaign || {};
+
+    const rows = selectedDifusiones.map((difusion) => {
+        const leidos = readByCampaign[difusion] ?? 0;
+        const clicsUnicos = clickedByCampaign[difusion] ?? 0;
+        const sinClic = Math.max(leidos - clicsUnicos, 0);
+        const clicsTotales = totalClicksByCampaign[difusion] ?? 0;
+        const ctr = leidos > 0 ? Math.round((clicsUnicos / leidos) * 100) : 0;
+
+        const links = Object.values(linksByCampaign[difusion] || {}).sort((a, b) => b.totalCount - a.totalCount);
+        const texto = links.length ? links.map((link) => link.name).join(", ") : "—";
+        const url = links.length ? links.map((link) => link.url).join(", ") : "—";
+
+        return { difusion, texto, url, leidos, clicsUnicos, sinClic, clicsTotales, ctr };
+    });
+
+    Components.renderTable(container, {
+        columns: [
+            { key: "difusion", label: "Difusión", format: formatDifusionName },
+            { key: "leidos", label: "Leídos", format: formatNumber },
+            { key: "clicsUnicos", label: "Clics únicos", format: formatNumber },
+            { key: "sinClic", label: "Sin clic", format: formatNumber },
+            { key: "clicsTotales", label: "Clics totales", format: formatNumber },
+            { key: "ctr", label: "Tasa de clics", format: (value) => `${value}%` },
+            { key: "texto", label: "Texto mostrado" },
+            { key: "url", label: "URL" },
+        ],
+        rows,
+    });
+}
+
+function renderClicksCharts(selectedDifusiones) {
+    renderClicksLinksDonut(selectedDifusiones);
+    renderClicksDonut(selectedDifusiones);
+    renderClicksFirstVsRepeatDonut(selectedDifusiones);
+    renderClicksDeviceDonut(selectedDifusiones);
+    renderClicksLinks(selectedDifusiones);
+    renderClicksSummaryTable(selectedDifusiones);
+}
+
 // Nombres oficiales de los códigos de error de la API de WhatsApp Cloud
 // (Meta), en español. error_msg viene vacío en los datos de la hoja, así
 // que el nombre legible sale de esta tabla en vez de la fila. Fuente:
@@ -743,6 +1100,7 @@ function renderEntregasCharts(selectedDifusiones) {
     });
 
     renderEstadoDonut(selectedDifusiones);
+    renderTipoMensajeDonut(selectedDifusiones);
     renderEntregasErrors(selectedDifusiones);
     renderEntregasSummaryTable(selectedDifusiones);
 }
@@ -752,6 +1110,7 @@ document.addEventListener("themechange", () => {
     renderGauge();
     renderQuestionGauges(gaugeSelectedDifusiones);
     renderEntregasCharts(entregasSelectedDifusiones);
+    renderClicksCharts(clicksSelectedDifusiones);
 });
 
 // Ids de los gráficos de respuestas actualmente montados, para poder
@@ -884,13 +1243,17 @@ document.addEventListener("DOMContentLoaded", () => {
         },
     });
 
-    // "Entregados vs No entregados", "Leídos vs No leídos" y "Despachos por
-    // estado" siguen pendientes de definir -- por ahora solo se resuelve
-    // "Enviados vs No enviados".
     EntregasView.init({
         onApply: (difusionesSeleccionadas) => {
             entregasSelectedDifusiones = difusionesSeleccionadas;
             renderEntregasCharts(difusionesSeleccionadas);
+        },
+    });
+
+    ClicksView.init({
+        onApply: (difusionesSeleccionadas) => {
+            clicksSelectedDifusiones = difusionesSeleccionadas;
+            renderClicksCharts(difusionesSeleccionadas);
         },
     });
 

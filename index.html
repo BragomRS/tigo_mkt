@@ -48,7 +48,9 @@
         </div>
         <div class="header-right">
             <span class="last-updated" id="lastUpdated">Sin datos</span>
-            <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema" type="button">☀️</button>
+            <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="Cambiar tema" type="button">
+                <span class="theme-toggle-thumb">☀️</span>
+            </button>
         </div>
     </header>
 
@@ -65,6 +67,10 @@
             <a class="sidebar-link" href="#" data-view="respuestasView">
                 <span class="sidebar-link-icon">💬</span>
                 <span class="sidebar-link-text">Respuestas</span>
+            </a>
+            <a class="sidebar-link" href="#" data-view="clicksView">
+                <span class="sidebar-link-icon">🔗</span>
+                <span class="sidebar-link-text">Clics en links</span>
             </a>
         </nav>
         <div class="sidebar-brand">
@@ -214,6 +220,17 @@
                     </div>
                 </div>
             </div>
+            <div class="card chart-card placeholder" id="entregasChartTipoCard">
+                <div class="card-header">
+                    <h3>Utility vs Marketing</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📊</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
             <div class="card chart-card placeholder" id="entregasErrorsCard">
                 <div class="card-header">
                     <h3>Errores</h3>
@@ -307,6 +324,105 @@
 
       </div>
 
+      <div class="view hidden" id="clicksView">
+
+        <div class="difusiones-filter">
+            <button id="clicksFilterToggle" class="month-filter-btn" type="button" aria-haspopup="true" aria-expanded="false">
+                <span class="month-filter-icon">📣</span>
+                <span id="clicksFilterLabel">Seleccionar difusiones</span>
+            </button>
+            <div id="clicksFilterPanel" class="month-filter-panel difusiones-filter-panel">
+                <label class="difusion-option difusion-select-all">
+                    <input type="checkbox" id="clicksFilterSelectAll">
+                    <span>Seleccionar todos</span>
+                </label>
+                <div id="clicksFilterList" class="difusiones-filter-list"></div>
+                <div class="month-filter-actions">
+                    <button id="clicksFilterClear" class="btn-secondary" type="button">Limpiar</button>
+                    <button id="clicksFilterApply" class="btn-primary" type="button">Aplicar</button>
+                </div>
+            </div>
+        </div>
+
+        <section class="charts-grid" id="clicksChartsGrid">
+            <div class="card chart-card placeholder" id="clicksChartClicsCard">
+                <div class="card-header">
+                    <h3>Clics únicos vs Sin clic</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📊</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card chart-card placeholder" id="clicksChartRepeatCard">
+                <div class="card-header">
+                    <h3>Primer clic vs Clics repetidos</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📊</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card chart-card placeholder" id="clicksChartDeviceCard">
+                <div class="card-header">
+                    <h3>Dispositivo del clic</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📊</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="charts-grid" id="clicksLinksRow">
+            <div class="card table-card" id="clicksLinksCard">
+                <div class="card-header">
+                    <h3>Qué se clickeó</h3>
+                </div>
+                <div class="card-body">
+                    <div id="clicksLinksContainer" class="table-scroll">
+                        <div class="empty-state">
+                            <span class="empty-state-icon">🚧</span>
+                            <p>Seleccioná una o más difusiones y presioná Aplicar.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card chart-card placeholder" id="clicksChartLinksCard">
+                <div class="card-header">
+                    <h3>Clics totales por link</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📊</span>
+                        <p>Esperando datos</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="card table-card" id="clicksSummaryCard">
+            <div class="card-header">
+                <h3>Detalle por difusión</h3>
+            </div>
+            <div class="card-body">
+                <div id="clicksSummaryContainer" class="table-scroll">
+                    <div class="empty-state">
+                        <span class="empty-state-icon">🚧</span>
+                        <p>Seleccioná una o más difusiones y presioná Aplicar.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+      </div>
+
     </main>
 
     <div id="loaderOverlay" class="loader-overlay">
@@ -338,6 +454,7 @@
     <script src="js/dashboard.js" defer></script>
     <script src="js/respuestas.js" defer></script>
     <script src="js/entregas.js" defer></script>
+    <script src="js/clicks.js" defer></script>
     <script src="script.js" defer></script>
 </body>
 </html>

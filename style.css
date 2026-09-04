@@ -149,12 +149,69 @@ a {
     width: 36px;
     height: 36px;
     border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-elevated);
+    box-shadow: var(--shadow-sm);
     font-size: 16px;
-    transition: background var(--transition-fast);
+    transition: background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .icon-btn:hover {
     background: var(--color-bg-hover);
+    box-shadow: var(--shadow-md);
+}
+
+.icon-btn:active {
+    transform: translateY(1px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Switch de tema: track ancho + perilla circular que se desliza de un
+   extremo al otro (izquierda = claro, derecha = oscuro). */
+.theme-toggle {
+    position: relative;
+    flex: 0 0 auto;
+    width: 52px;
+    height: 28px;
+    padding: 0;
+    border-radius: 999px;
+    border: 1.5px solid var(--color-accent);
+    background: rgba(99, 102, 241, 0.18);
+    box-shadow: var(--shadow-sm);
+    transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.theme-toggle:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.theme-toggle:active .theme-toggle-thumb {
+    width: 24px;
+}
+
+.theme-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--color-bg-elevated);
+    box-shadow: var(--shadow-sm);
+    font-size: 12px;
+    line-height: 1;
+    transition: left var(--transition-base), width var(--transition-fast);
+}
+
+:root[data-theme="dark"] .theme-toggle {
+    background: var(--color-accent);
+}
+
+:root[data-theme="dark"] .theme-toggle-thumb {
+    left: calc(100% - 24px);
 }
 
 .brand {
@@ -592,6 +649,12 @@ a {
     gap: var(--space-md);
 }
 
+/* "Qué se clickeó" (tabla) + "Clics totales por link" (dona) en una misma
+   fila, tabla más ancha que la dona. */
+#clicksLinksRow {
+    grid-template-columns: 2fr 1fr;
+}
+
 .tables-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -689,7 +752,12 @@ a {
 #entregasChartEnviadosCard .card-body,
 #entregasChartEntregadosCard .card-body,
 #entregasChartLeidosCard .card-body,
-#entregasChartEstadoCard .card-body {
+#entregasChartEstadoCard .card-body,
+#entregasChartTipoCard .card-body,
+#clicksChartLinksCard .card-body,
+#clicksChartClicsCard .card-body,
+#clicksChartRepeatCard .card-body,
+#clicksChartDeviceCard .card-body {
     height: 340px;
 }
 
@@ -898,7 +966,8 @@ a {
         margin-left: 0;
     }
 
-    .charts-grid {
+    .charts-grid,
+    #clicksLinksRow {
         grid-template-columns: 1fr;
     }
 }

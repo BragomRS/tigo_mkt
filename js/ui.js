@@ -22,7 +22,10 @@ const UI = {
 
     updateThemeToggleIcon(theme) {
         const btn = $("#themeToggle");
-        if (btn) btn.textContent = theme === "dark" ? "🌙" : "☀️";
+        if (!btn) return;
+        btn.setAttribute("aria-checked", String(theme === "dark"));
+        const thumb = btn.querySelector(".theme-toggle-thumb");
+        if (thumb) thumb.textContent = theme === "dark" ? "🌙" : "☀️";
     },
 
     toggleSidebar() {
