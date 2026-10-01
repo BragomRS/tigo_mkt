@@ -50,6 +50,15 @@ function splitDateTime(rawValue) {
     return { date: trimmed, time: "" };
 }
 
+// Extrae la gestión del nombre de la difusión: el nombre llega con un
+// prefijo fijo del tipo "Gestion P2p 2607.030 . ..." o "Gestion Mkt 2608.002 . ...",
+// la gestión es esa segunda palabra ("P2p", "Mkt"), siempre en mayúsculas
+// para mostrar (misma regla que extractGestion en js/dashboard.js).
+function extractGestion(value) {
+    const match = String(value).match(/^Gestion\s+(\S+)/i);
+    return match ? match[1].toUpperCase() : "SIN GESTIÓN";
+}
+
 // Filtro por mes/año seleccionado en el header (js/monthFilter.js).
 // Se aplica sobre dispatched_at con un corte literal de texto (mismo
 // criterio que splitDateTime/extractDayKey) para no correr la fecha por
@@ -262,6 +271,7 @@ const PROCESSORS = [
 
                 return {
                     difusion,
+                    gestion: extractGestion(difusion),
                     mensajesEnviados: stats.mensajesEnviados,
                     mensajesConError: stats.mensajesConError,
                     fechaEnvio: date,

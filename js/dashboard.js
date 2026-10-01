@@ -56,6 +56,13 @@ function formatDifusionName(value) {
         .trim();
 }
 
+// Extrae la gestión del mismo prefijo: la palabra que sigue a "Gestion"
+// ("P2p", "Mkt"), siempre en mayúsculas para mostrar.
+function extractGestion(value) {
+    const match = String(value).match(/^Gestion\s+(\S+)/i);
+    return match ? match[1].toUpperCase() : "SIN GESTIÓN";
+}
+
 const Dashboard = {
 
     render(data) {
@@ -156,6 +163,7 @@ const Dashboard = {
 
         Components.renderTable($("#table-container-campaigns"), {
             columns: [
+                { key: "gestion", label: "Gestión" },
                 { key: "difusion", label: "Difusión", format: formatDifusionName },
                 { key: "mensajesEnviados", label: "Mensajes enviados", format: formatNumber },
                 { key: "mensajesConError", label: "Mensajes con error", format: formatNumber },

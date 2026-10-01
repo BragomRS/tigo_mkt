@@ -909,11 +909,12 @@ function renderClicksSummaryTable(selectedDifusiones) {
         const texto = links.length ? links.map((link) => link.name).join(", ") : "—";
         const url = links.length ? links.map((link) => link.url).join(", ") : "—";
 
-        return { difusion, texto, url, leidos, clicsUnicos, sinClic, clicsTotales, ctr };
+        return { difusion, gestion: extractGestion(difusion), texto, url, leidos, clicsUnicos, sinClic, clicsTotales, ctr };
     });
 
     Components.renderTable(container, {
         columns: [
+            { key: "gestion", label: "Gestión" },
             { key: "difusion", label: "Difusión", format: formatDifusionName },
             { key: "leidos", label: "Leídos", format: formatNumber },
             { key: "clicsUnicos", label: "Clics únicos", format: formatNumber },
@@ -1036,6 +1037,7 @@ function renderEntregasSummaryTable(selectedDifusiones) {
 
         return {
             difusion,
+            gestion: extractGestion(difusion),
             solicitados,
             enviados,
             noEnviados: Math.max(solicitados - enviados, 0),
@@ -1047,6 +1049,7 @@ function renderEntregasSummaryTable(selectedDifusiones) {
 
     Components.renderTable(container, {
         columns: [
+            { key: "gestion", label: "Gestión" },
             { key: "difusion", label: "Difusión", format: formatDifusionName },
             { key: "solicitados", label: "Solicitados", format: formatNumber },
             { key: "enviados", label: "Enviados", format: formatNumber },
